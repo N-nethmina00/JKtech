@@ -1,0 +1,1 @@
+<footer class="footer"><div class="container"><div class="logo"><span>JK</span>tech<span class="dot">.lk</span></div><p>Reconditioned Japanese vehicle spare parts, sourced with confidence.</p><small>© 2026 JKtech.lk</small></div></footer>
