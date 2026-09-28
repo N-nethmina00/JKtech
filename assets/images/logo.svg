@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 60" width="310" height="60">
+  <defs>
+    <!-- Royal Blue Gradient for the "J" -->
+    <linearGradient id="jkBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0091FF"/>
+      <stop offset="100%" stop-color="#0B63E5"/>
+    </linearGradient>
+
+    <!-- Metallic Platinum Gear Gradient -->
+    <linearGradient id="gearMetalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#CBD5E1"/>
+      <stop offset="100%" stop-color="#94A3B8"/>
+    </linearGradient>
+
+    <!-- Subtle Glow Filter -->
+    <filter id="blueGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <style>
+      @keyframes gearBreathe {
+        0%, 100% { opacity: 0.92; }
+        50% { opacity: 1; filter: drop-shadow(0 0 3px rgba(11, 99, 229, 0.4)); }
+      }
+      .gear-emblem {
+        animation: gearBreathe 4s infinite ease-in-out;
+      }
+      .j-hook {
+        filter: drop-shadow(0 0 4px rgba(11, 99, 229, 0.6));
+      }
+    </style>
+  </defs>
+
+  <!-- ==================================================== -->
+  <!-- LEFT: JK TECH MOTORS ICON EMBLEM (Gear Arch + JK)    -->
+  <!-- ==================================================== -->
+  <g class="gear-emblem" transform="translate(6, 4) scale(0.33)">
+    <!-- Semi-Circular Cogwheel / Gear Arch (Top 180 Degrees) -->
+    <path d="
+      M 30,100 L 56,100 
+      A 44,44 0 0,1 144,100 
+      L 170,100 
+      L 168.5,75.4 L 156.7,87.9 
+      L 153.0,76.4 L 164.0,71.5 
+      L 155.2,56.9 L 145.7,64.3 
+      L 137.3,55.6 L 145.0,46.4 
+      L 130.7,37.1 L 125.4,47.9 
+      L 112.1,43.3 L 114.6,31.5 
+      L 100,30 
+      L 85.4,31.5 L 87.9,43.3 
+      L 74.6,47.9 L 69.3,37.1 
+      L 55.0,46.4 L 62.7,55.6 
+      L 45.7,64.3 L 36.0,71.5 
+      L 47.0,76.4 L 34.3,87.9 
+      L 31.5,75.4 Z" 
+      fill="url(#gearMetalGrad)" 
+      stroke="#1e293b" 
+      stroke-width="1.5"
+    />
+
+    <!-- THE LETTER 'K' (Bold Metallic Charcoal / Silver with Top Bevel) -->
+    <!-- Vertical Stem with 45-degree top-left chamfer -->
+    <path d="M 85,68 L 94,56 L 100,56 L 100,118 L 85,118 Z" fill="url(#gearMetalGrad)"/>
+
+    <!-- Upper Diagonal Arm of 'K' -->
+    <polygon points="98,82 136,46 148,56 100,94" fill="url(#gearMetalGrad)"/>
+
+    <!-- Lower Diagonal Leg of 'K' with Cutout Arc -->
+    <path d="M 98,88 L 132,126 L 122,134 L 95,96 Z" fill="url(#gearMetalGrad)"/>
+
+    <!-- Cutout Curve & Floating Circular Dot (Signature JK Design) -->
+    <circle cx="136" cy="120" r="5" fill="none" stroke="#080c14" stroke-width="3"/>
+    <circle cx="140" cy="120" r="4.5" fill="url(#gearMetalGrad)"/>
+
+    <!-- THE LETTER 'J' (Vibrant Royal Blue Hook connecting to bottom of K) -->
+    <path class="j-hook" d="
+      M 100,116 
+      L 100,126 
+      C 100,138 89,146 76,146 
+      C 63,146 54,136 54,124 
+      L 54,116 
+      L 70,116 
+      L 70,124 
+      C 70,129 73,132 76,132 
+      C 80,132 84,129 84,124 
+      L 84,116 Z" 
+      fill="url(#jkBlueGrad)" 
+      filter="url(#blueGlow)"
+    />
+  </g>
+
+  <!-- ==================================================== -->
+  <!-- RIGHT: BRAND TYPOGRAPHY (JK TECH MOTORS COMPANY)     -->
+  <!-- ==================================================== -->
+  <g transform="translate(72, 0)">
+    <!-- Brand Title: JK in Vibrant Blue, TECH MOTORS in Pure White -->
+    <text x="0" y="27" font-family="'Outfit', 'Montserrat', 'Segoe UI', sans-serif" font-size="22" font-weight="900" letter-spacing="1">
+      <tspan fill="#0091FF" filter="url(#blueGlow)">JK</tspan>
+      <tspan fill="#FFFFFF"> TECH MOTORS</tspan>
+    </text>
+
+    <!-- Subtitle: COMPANY • JAPANESE RECONDITIONED AUTO SPARES -->
+    <text x="1" y="43" font-family="'Plus Jakarta Sans', sans-serif" font-size="8.5" font-weight="800" fill="#94A3B8" letter-spacing="3.2">
+      COMPANY
+    </text>
+    <text x="82" y="43" font-family="'Plus Jakarta Sans', sans-serif" font-size="8" font-weight="700" fill="#06B6D4" letter-spacing="1.5">
+      • JAPANESE RECONDITIONED SPARES
+    </text>
+  </g>
+</svg>

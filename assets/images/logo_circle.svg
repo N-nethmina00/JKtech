@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <!-- Royal Blue Gradient for the "J" -->
+    <linearGradient id="circleBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0080FF"/>
+      <stop offset="100%" stop-color="#0B5ED7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Crisp White Circle Base with Subtle Rim -->
+  <circle cx="120" cy="120" r="115" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="3"/>
+
+  <!-- Gear Arch & K Monogram in Dark Charcoal -->
+  <g transform="translate(20, 12)">
+    <!-- Semi-Circular Cogwheel Arch -->
+    <path d="
+      M 30,100 L 56,100 
+      A 44,44 0 0,1 144,100 
+      L 170,100 
+      L 168.5,75.4 L 156.7,87.9 
+      L 153.0,76.4 L 164.0,71.5 
+      L 155.2,56.9 L 145.7,64.3 
+      L 137.3,55.6 L 145.0,46.4 
+      L 130.7,37.1 L 125.4,47.9 
+      L 112.1,43.3 L 114.6,31.5 
+      L 100,30 
+      L 85.4,31.5 L 87.9,43.3 
+      L 74.6,47.9 L 69.3,37.1 
+      L 55.0,46.4 L 62.7,55.6 
+      L 45.7,64.3 L 36.0,71.5 
+      L 47.0,76.4 L 34.3,87.9 
+      L 31.5,75.4 Z" 
+      fill="#1A202C"
+    />
+
+    <!-- Bold 'K' Monogram -->
+    <!-- Vertical stem with 45-degree top-left chamfer -->
+    <path d="M 85,68 L 94,56 L 100,56 L 100,118 L 85,118 Z" fill="#1A202C"/>
+    <!-- Upper arm -->
+    <polygon points="98,82 136,46 148,56 100,94" fill="#1A202C"/>
+    <!-- Lower leg -->
+    <path d="M 98,88 L 132,126 L 122,134 L 95,96 Z" fill="#1A202C"/>
+    <!-- Signature circular cutout & dot -->
+    <circle cx="136" cy="120" r="5" fill="#FFFFFF" stroke="#1A202C" stroke-width="2.5"/>
+    <circle cx="140" cy="120" r="4" fill="#1A202C"/>
+
+    <!-- Royal Blue Interlocking 'J' Hook -->
+    <path d="
+      M 100,116 
+      L 100,126 
+      C 100,138 89,146 76,146 
+      C 63,146 54,136 54,124 
+      L 54,116 
+      L 70,116 
+      L 70,124 
+      C 70,129 73,132 76,132 
+      C 80,132 84,129 84,124 
+      L 84,116 Z" 
+      fill="url(#circleBlueGrad)"
+    />
+  </g>
+
+  <!-- Typography Inside Circle: TECH MOTORS COMPANY -->
+  <text x="120" y="194" text-anchor="middle" font-family="'Outfit', 'Montserrat', 'Segoe UI', sans-serif" font-weight="900" font-size="14.5" fill="#1A202C" letter-spacing="4.5">
+    TECH MOTORS
+  </text>
+  <text x="120" y="210" text-anchor="middle" font-family="'Plus Jakarta Sans', 'Segoe UI', sans-serif" font-weight="800" font-size="8.5" fill="#64748B" letter-spacing="5">
+    COMPANY
+  </text>
+</svg>

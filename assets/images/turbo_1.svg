@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="turboLighting" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#141f30"/>
+      <stop offset="60%" stop-color="#080c14"/>
+      <stop offset="100%" stop-color="#020408"/>
+    </radialGradient>
+    <radialGradient id="cyanAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
+      <stop offset="70%" stop-color="#06b6d4" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="silverCompressor" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#cbd5e1"/>
+      <stop offset="70%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="ironTurbine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="50%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="turboShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+
+    <!-- Embedded CSS Animation for continuous impeller spooling -->
+    <style>
+      @keyframes spoolTurbo {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      @keyframes wastegatePulse {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 1; filter: drop-shadow(0 0 6px #ff4d2d); }
+      }
+      .spinning-impeller {
+        animation: spoolTurbo 4s linear infinite;
+        transform-origin: 130px 110px;
+      }
+      svg:hover .spinning-impeller {
+        animation-duration: 0.8s;
+      }
+      .wastegate-line {
+        animation: wastegatePulse 2s infinite ease-in-out;
+      }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="url(#turboLighting)"/>
+  <circle cx="250" cy="180" r="170" fill="url(#cyanAura)"/>
+  <ellipse cx="250" cy="325" rx="180" ry="18" fill="#000000" opacity="0.6"/>
+
+  <g transform="translate(140, 60)" filter="url(#turboShadow)">
+    <!-- Compressor Snail Scroll Housing -->
+    <path d="M 60 160 C 10 130, 10 40, 90 15 C 170 -10, 240 60, 220 150 C 210 210, 110 220, 60 160 Z" fill="url(#silverCompressor)" stroke="#38bdf8" stroke-width="2.5"/>
+
+    <!-- Compressor Air Intake Bellmouth Ring -->
+    <circle cx="130" cy="110" r="48" fill="#0b111d" stroke="#06b6d4" stroke-width="3.5"/>
+    <circle cx="130" cy="110" r="34" fill="#03060a"/>
+
+    <!-- Animated Spinning Impeller Blades -->
+    <g class="spinning-impeller">
+      <path d="M 130 110 L 130 76" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 130 110 L 158 88" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 130 110 L 164 118" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 130 110 L 146 142" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 130 110 L 114 142" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 130 110 L 96 118" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 130 110 L 102 88" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="130" cy="110" r="11" fill="#06b6d4" stroke="#ffffff" stroke-width="1.5"/>
+    </g>
+
+    <!-- High-Pressure Compressor Discharge Pipe -->
+    <path d="M 195 50 L 265 25 L 280 65 L 210 90 Z" fill="url(#silverCompressor)" stroke="#38bdf8" stroke-width="2.5"/>
+
+    <!-- Cast Iron Exhaust Turbine Housing (Rear) -->
+    <path d="M 175 130 C 215 140, 240 180, 230 220 C 215 250, 175 255, 150 235 Z" fill="url(#ironTurbine)" stroke="#64748b" stroke-width="2"/>
+    
+    <!-- Wastegate Canister Actuator with Orange Silicone Line -->
+    <rect x="245" y="125" width="45" height="55" rx="8" fill="#1e293b" stroke="#f97316" stroke-width="2"/>
+    <line class="wastegate-line" x1="245" y1="155" x2="205" y2="185" stroke="#f97316" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Tag Badge with Pulse -->
+  <g transform="translate(360, 25)">
+    <rect width="115" height="28" rx="6" fill="#08101a" stroke="#06b6d4" stroke-width="1.8"/>
+    <circle cx="16" cy="14" r="5" fill="#06b6d4"/>
+    <text x="64" y="18" fill="#67e8f9" font-size="10" font-family="'Outfit', sans-serif" font-weight="800" text-anchor="middle" letter-spacing="1">TD05HR SPOOL</text>
+  </g>
+</svg>

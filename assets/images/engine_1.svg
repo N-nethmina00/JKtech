@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="studioLighting" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#141f36"/>
+      <stop offset="60%" stop-color="#090e1a"/>
+      <stop offset="100%" stop-color="#04060c"/>
+    </radialGradient>
+    <radialGradient id="tealAura" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="chromeShine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="25%" stop-color="#f8fafc"/>
+      <stop offset="50%" stop-color="#64748b"/>
+      <stop offset="85%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="intakeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="blackAlloy" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="partGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#06b6d4" flood-opacity="0.2"/>
+    </filter>
+
+    <style>
+      @keyframes pulseRunners {
+        0%, 100% { stroke: #06b6d4; filter: drop-shadow(0 0 3px #06b6d4); }
+        50% { stroke: #38bdf8; filter: drop-shadow(0 0 10px #38bdf8); }
+      }
+      @keyframes sparkSeq1 { 0%, 25%, 100% { fill: #06b6d4; } 12% { fill: #ff4d2d; filter: drop-shadow(0 0 8px #ff4d2d); } }
+      @keyframes sparkSeq2 { 0%, 50%, 100% { fill: #06b6d4; } 37% { fill: #ff4d2d; filter: drop-shadow(0 0 8px #ff4d2d); } }
+      @keyframes sparkSeq3 { 0%, 75%, 100% { fill: #06b6d4; } 62% { fill: #ff4d2d; filter: drop-shadow(0 0 8px #ff4d2d); } }
+      @keyframes sparkSeq4 { 0%, 100% { fill: #06b6d4; } 87% { fill: #ff4d2d; filter: drop-shadow(0 0 8px #ff4d2d); } }
+
+      .animated-runner { animation: pulseRunners 2.5s infinite ease-in-out; }
+      .spark-1 { animation: sparkSeq1 1.2s infinite; }
+      .spark-2 { animation: sparkSeq2 1.2s infinite; }
+      .spark-3 { animation: sparkSeq3 1.2s infinite; }
+      .spark-4 { animation: sparkSeq4 1.2s infinite; }
+    </style>
+  </defs>
+
+  <!-- Studio Floor & Backdrop -->
+  <rect width="100%" height="100%" fill="url(#studioLighting)"/>
+  <circle cx="250" cy="180" r="180" fill="url(#tealAura)"/>
+  <ellipse cx="250" cy="320" rx="200" ry="25" fill="#000000" opacity="0.6"/>
+
+  <!-- Engine Assembly Group -->
+  <g transform="translate(85, 40)" filter="url(#partGlow)">
+    <!-- Valve Cover -->
+    <path d="M 60 45 L 270 45 L 290 85 L 40 85 Z" fill="url(#blackAlloy)" stroke="#06b6d4" stroke-width="2"/>
+    <rect x="75" y="55" width="180" height="18" rx="4" fill="#0b111d" stroke="#475569" stroke-width="1.5"/>
+    <text x="165" y="68" fill="#38bdf8" font-size="10" font-family="'Outfit', sans-serif" font-weight="900" letter-spacing="2" text-anchor="middle">TOYOTA VVT-i 16V DOHC</text>
+
+    <!-- Spark Plug Coils with Firing Order Animation -->
+    <circle class="spark-1" cx="95" cy="64" r="5" fill="#06b6d4"/>
+    <circle class="spark-2" cx="140" cy="64" r="5" fill="#06b6d4"/>
+    <circle class="spark-3" cx="190" cy="64" r="5" fill="#06b6d4"/>
+    <circle class="spark-4" cx="235" cy="64" r="5" fill="#06b6d4"/>
+
+    <!-- Cylinder Head Cast Aluminum -->
+    <path d="M 40 85 L 290 85 L 285 140 L 45 140 Z" fill="url(#chromeShine)" stroke="#64748b" stroke-width="1.5"/>
+
+    <!-- 4 High-Flow Intake Runners with Glowing Airflow Animation -->
+    <path class="animated-runner" d="M 65 95 C 65 130, 25 140, 15 180" fill="none" stroke="url(#intakeGrad)" stroke-width="10" stroke-linecap="round"/>
+    <path class="animated-runner" d="M 115 95 C 115 130, 45 140, 28 185" fill="none" stroke="url(#intakeGrad)" stroke-width="10" stroke-linecap="round"/>
+    <path class="animated-runner" d="M 165 95 C 165 130, 65 140, 42 190" fill="none" stroke="url(#intakeGrad)" stroke-width="10" stroke-linecap="round"/>
+    <path class="animated-runner" d="M 215 95 C 215 130, 85 140, 56 195" fill="none" stroke="url(#intakeGrad)" stroke-width="10" stroke-linecap="round"/>
+
+    <!-- Fuel Rail -->
+    <rect x="55" y="90" width="170" height="7" rx="2" fill="#f59e0b" stroke="#d97706" stroke-width="1"/>
+    
+    <!-- Intake Plenum & Throttle Body -->
+    <rect x="5" y="170" width="55" height="80" rx="10" fill="#0f172a" stroke="#06b6d4" stroke-width="2"/>
+    <circle cx="32" cy="210" r="18" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+    <circle cx="32" cy="210" r="6" fill="#06b6d4"/>
+
+    <!-- Engine Lower Block & Crankcase -->
+    <rect x="55" y="140" width="225" height="95" rx="6" fill="url(#blackAlloy)" stroke="#475569" stroke-width="2"/>
+    <line x1="85" y1="145" x2="85" y2="230" stroke="#334155" stroke-width="3"/>
+    <line x1="120" y1="145" x2="120" y2="230" stroke="#334155" stroke-width="3"/>
+    <line x1="155" y1="145" x2="155" y2="230" stroke="#334155" stroke-width="3"/>
+    <line x1="190" y1="145" x2="190" y2="230" stroke="#334155" stroke-width="3"/>
+    <line x1="225" y1="145" x2="225" y2="230" stroke="#334155" stroke-width="3"/>
+
+    <!-- Front Timing Drive Pulleys -->
+    <path d="M 280 90 L 315 110 L 315 220 L 280 235 Z" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+    <circle cx="310" cy="115" r="22" fill="#0f172a" stroke="#38bdf8" stroke-width="3"/>
+    <circle cx="310" cy="115" r="7" fill="#64748b"/>
+    <circle cx="300" cy="165" r="18" fill="#0f172a" stroke="#94a3b8" stroke-width="3"/>
+    <circle cx="300" cy="165" r="6" fill="#38bdf8"/>
+    <circle cx="310" cy="215" r="28" fill="#0f172a" stroke="#ff4d2d" stroke-width="3.5"/>
+    <circle cx="310" cy="215" r="9" fill="#94a3b8"/>
+    <path d="M 310 93 L 310 243 L 290 180 Z" fill="none" stroke="#f97316" stroke-width="3.5"/>
+
+    <!-- Oil Pan -->
+    <path d="M 75 235 L 260 235 L 245 265 L 90 265 Z" fill="#0b101c" stroke="#475569" stroke-width="2"/>
+  </g>
+
+  <!-- Inspection Verification Badge -->
+  <g transform="translate(360, 25)">
+    <rect width="115" height="28" rx="6" fill="#080e18" stroke="#10b981" stroke-width="1.8"/>
+    <circle cx="16" cy="14" r="5" fill="#10b981"/>
+    <text x="64" y="18" fill="#34d399" font-size="10" font-family="'Outfit', sans-serif" font-weight="800" text-anchor="middle" letter-spacing="1">JEVIC 12.8 BAR</text>
+  </g>
+</svg>
