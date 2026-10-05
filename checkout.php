@@ -14,6 +14,10 @@ $subtotal = getCartSubtotal();
 $shipping = getCartShipping();
 $total = getCartTotal();
 
+if (isset($_GET['status']) && $_GET['status'] === 'cancelled') {
+    setFlash('warning', 'Card payment was cancelled. You can try again or select another payment method.');
+}
+
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,6 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             clearCart();
+            if ($paymentMethod === 'card') {
+                header("Location: payhere-pay.php?order_id={$orderId}");
+                exit;
+            }
             setFlash('success', "Order #{$orderId} placed successfully! Our logistics team will call {$phone} shortly.");
             header('Location: orders.php');
             exit;
@@ -256,11 +264,27 @@ $flash = getFlash();
               </div>
             </label>
 
-            <label class="payment-option">
-              <input type="radio" name="payment_method" value="card" style="accent-color: var(--primary); cursor: pointer;">
-              <div>
-                <strong style="color: #fff; display: block; font-size: 14px; font-family: var(--font-display);">Credit / Debit Card (Visa / Mastercard)</strong>
-                <span style="font-size: 13px; color: var(--text-muted);">Pay securely online with 256-bit SSL encryption.</span>
+            <label class="payment-option" style="border: 1px solid rgba(0, 229, 255, 0.35); background: rgba(0, 229, 255, 0.03);">
+              <input type="radio" name="payment_method" value="card" style="accent-color: var(--neon-cyan); cursor: pointer;">
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <strong style="color: #fff; font-size: 14px; font-family: var(--font-display); display: flex; align-items: center; gap: 8px;">
+                    Credit / Debit Card (Online Payment)
+                  </strong>
+                  <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 2px 9px; border-radius: 12px; font-size: 10.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    256-Bit SSL Encrypted
+                  </span>
+                </div>
+                <span style="font-size: 12.5px; color: var(--text-muted); display: block; margin-top: 5px; line-height: 1.5;">
+                  Instant, secure online card payment. Supports all major Sri Lankan &amp; international cards. You will be prompted to authenticate your payment in a secure encrypted window.
+                </span>
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 9px;">
+                  <span style="background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.12); padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; color: #f1f5f9; letter-spacing: 0.5px;">VISA</span>
+                  <span style="background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.12); padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; color: #f1f5f9; letter-spacing: 0.5px;">MASTERCARD</span>
+                  <span style="background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.12); padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; color: #f1f5f9; letter-spacing: 0.5px;">AMERICAN EXPRESS</span>
+                  <span style="background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.12); padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px;">GENIE</span>
+                </div>
               </div>
             </label>
           </div>

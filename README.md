@@ -84,7 +84,7 @@ jdm-autoparts/
 Open `config/database.php` and ensure your database credentials match your local environment:
 ```php
 $host     = '127.0.0.1';
-$port     = '3307';
+$port     = '3306';
 $dbname   = 'jdm_autoparts';
 $username = 'root';        // Default in XAMPP
 $password = '';            // Blank by default in XAMPP

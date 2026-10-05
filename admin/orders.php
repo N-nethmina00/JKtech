@@ -246,7 +246,11 @@ $flash = getFlash();
               <div class="flex items-center gap-4">
                 <strong style="font-size: 16px; color: #fff;">Order #<?= $o['id'] ?></strong>
                 <span style="font-size: 12px; color: var(--text-muted);"><?= date('Y-m-d H:i', strtotime($o['created_at'])) ?></span>
-                <span class="badge badge-grade"><?= strtoupper($o['payment_method']) ?></span>
+                <?php if ($o['payment_method'] === 'card'): ?>
+                  <span class="badge" style="background: rgba(0, 229, 255, 0.15); color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.35); font-weight: 800; font-size: 11px;">💳 ONLINE CARD</span>
+                <?php else: ?>
+                  <span class="badge badge-grade"><?= strtoupper($o['payment_method']) ?></span>
+                <?php endif; ?>
               </div>
               
               <div class="flex items-center gap-2">
@@ -295,6 +299,12 @@ $flash = getFlash();
                       <strong style="color: var(--accent-cyan);"><?= formatCurrency($it['subtotal']) ?></strong>
                     </div>
                   <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+
+              <?php if (!empty($o['notes'])): ?>
+                <div style="margin-top: 12px; font-size: 12px; color: #94a3b8; background: rgba(0, 0, 0, 0.25); padding: 8px 14px; border-radius: 6px; border-left: 2px solid var(--neon-cyan);">
+                  <strong style="color: #fff;">Transaction &amp; Dispatch Notes:</strong> <?= nl2br(htmlspecialchars($o['notes'])) ?>
                 </div>
               <?php endif; ?>
             </div>

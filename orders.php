@@ -144,10 +144,17 @@ $flash = getFlash();
               <?php endif; ?>
             </div>
 
-            <div class="flex justify-between items-center" style="font-size: 13px; color: var(--text-muted);">
+            <div class="flex justify-between items-center" style="font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px;">
               <div>
                 <strong>Destination:</strong> <?= htmlspecialchars($ord['delivery_address']) ?>, <?= htmlspecialchars($ord['city']) ?>
                 <span style="margin-left: 14px;"><strong>Payment Mode:</strong> <?= strtoupper($ord['payment_method']) ?></span>
+                <?php if ($ord['payment_method'] === 'card' && $ord['status'] === 'Pending'): ?>
+                  <a href="payhere-pay.php?order_id=<?= $ord['id'] ?>" class="btn btn-sm" style="background: linear-gradient(135deg, #00e5ff, #0077ff); color: #000; font-weight: 800; font-size: 11px; padding: 3px 10px; border-radius: 4px; margin-left: 10px; text-decoration: none;">
+                    💳 Complete Card Payment &rarr;
+                  </a>
+                <?php elseif ($ord['payment_method'] === 'card' && in_array($ord['status'], ['Processing', 'Delivered', 'Shipped'])): ?>
+                  <span style="color: #00e676; font-weight: 700; font-size: 11.5px; margin-left: 10px;">✓ Paid via Card Online</span>
+                <?php endif; ?>
               </div>
               <div>
                 <strong style="font-size: 16px; color: #fff;">Total: <?= formatCurrency($ord['total_amount']) ?></strong>
