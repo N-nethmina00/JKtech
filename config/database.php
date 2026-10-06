@@ -343,6 +343,37 @@ function seedDefaultData($pdo) {
             $pStmt->execute(['Brembo Front 4-Pot Monobloc Calipers & Rotors', 'BRK-SUB-BREM-04', 4, 6, 'Subaru Impreza WRX STI GDB/GRB, Forester SG9', 120000.00, 2, 'brake_1.svg', 'Factory Gold Brembo 4-pot radial mount front calipers paired with 326mm slotted rotors. Reconditioned with fresh seals.', 1]);
             $pStmt->execute(['Honda K20A Type-R Red Top Engine Assembly', 'ENG-HON-K20A-06', 1, 3, 'Integra DC5 Type-R, Civic EP3', 480000.00, 1, 'engine_2.svg', 'High-revving naturally aspirated JDM 2.0L i-VTEC DOHC engine producing 220PS. Pristine red valve cover.', 1]);
         }
+
+        // Auto-seed multiple gallery photos for products if product_images is empty or has only single photos
+        $piCheck = $pdo->query("SELECT COUNT(*) FROM product_images")->fetchColumn();
+        $pCount = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
+        if ($piCheck <= $pCount && $pCount > 0) {
+            $pdo->exec("DELETE FROM product_images");
+            $allP = $pdo->query("SELECT id, image_url FROM products")->fetchAll();
+            $insPI = $pdo->prepare("INSERT INTO product_images (product_id, image_path, is_primary) VALUES (?, ?, ?)");
+            foreach ($allP as $row) {
+                $pId = $row['id'];
+                $main = !empty($row['image_url']) ? $row['image_url'] : 'engine_1.svg';
+                // 1. Primary photo
+                $insPI->execute([$pId, $main, 1]);
+
+                // 2. Additional detailed angle photos & bench test inspection charts
+                if (strpos($main, 'engine') !== false) {
+                    $insPI->execute([$pId, 'engine_detail.svg', 0]);
+                    $insPI->execute([$pId, 'dyno_test.svg', 0]);
+                    $insPI->execute([$pId, 'engine_2.svg', 0]);
+                } elseif (strpos($main, 'transmission') !== false) {
+                    $insPI->execute([$pId, 'transmission_1.svg', 0]);
+                    $insPI->execute([$pId, 'dyno_test.svg', 0]);
+                } elseif (strpos($main, 'suspension') !== false) {
+                    $insPI->execute([$pId, 'suspension_1.svg', 0]);
+                    $insPI->execute([$pId, 'brake_1.svg', 0]);
+                } elseif (strpos($main, 'brake') !== false) {
+                    $insPI->execute([$pId, 'brake_1.svg', 0]);
+                    $insPI->execute([$pId, 'suspension_1.svg', 0]);
+                }
+            }
+        }
     } catch (Exception $ex) {
         // Table initialization or seeding handled gracefully
     }

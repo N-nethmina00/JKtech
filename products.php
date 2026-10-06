@@ -295,6 +295,12 @@ $flash = getFlash();
                 <div class="card-thumb">
                   <img src="<?= htmlspecialchars(getProductImageUrl($item['image_url'])) ?>" alt="<?= htmlspecialchars($item['name']) ?>">
                   <span class="card-badge-top badge badge-grade"><?= htmlspecialchars($item['grade'] ?? 'Grade A') ?></span>
+                  <?php 
+                    $photoCount = count(fetchProductImages($item['id']));
+                    if ($photoCount > 1): 
+                  ?>
+                    <span class="card-multi-photo-badge" title="<?= $photoCount ?> photos available">📷 <?= $photoCount ?></span>
+                  <?php endif; ?>
                 </div>
                 <div class="card-body">
                   <span class="card-category"><?= htmlspecialchars($item['brand_name'] ?? 'JDM Genuine') ?> • <?= htmlspecialchars($item['category_name'] ?? 'Assembly') ?></span>

@@ -9,13 +9,19 @@ $dbStatus = getDbStatus();
 $categories = fetchCategories();
 $brands = fetchBrands();
 
-// Handle Form Submissions (Create, Update, Delete, Delete Photo)
+// Ensure upload directory exists
+$uploadDir = __DIR__ . '/../assets/uploads/products/';
+if (!is_dir($uploadDir)) {
+    @mkdir($uploadDir, 0777, true);
+}
+
+// -------------------------------------------------------------
+// Handle Form Submissions (Create, Update, Delete, Photo Actions)
+// -------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // -------------------------------------------------------------
-    // 1. ADD NEW PRODUCT (with Multiple Image Upload)
-    // -------------------------------------------------------------
+    // 1. ADD NEW PRODUCT WITH MULTIPLE PHOTOS
     if ($action === 'create' && $pdo) {
         $sku = trim(sanitize($_POST['sku'] ?? ''));
         if (empty($sku)) {
@@ -27,15 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $brandId = (int)($_POST['brand_id'] ?? 1);
         $catId = (int)($_POST['category_id'] ?? 1);
         $stock = (int)($_POST['stock_quantity'] ?? 1);
+        $fitment = trim(sanitize($_POST['model_compatibility'] ?? 'General JDM Fitment'));
+        $grade = trim(sanitize($_POST['grade'] ?? 'Grade A'));
         $desc = trim(sanitize($_POST['description'] ?? ''));
 
-        // Handle File Uploads (Multiple Photos)
+        // Handle Uploaded Files
         $uploadedPhotos = [];
-        $uploadDir = __DIR__ . '/../assets/uploads/products/';
-        if (!is_dir($uploadDir)) {
-            @mkdir($uploadDir, 0777, true);
-        }
-
         if (isset($_FILES['product_photos']) && is_array($_FILES['product_photos']['name'])) {
             $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
             $fileCount = count($_FILES['product_photos']['name']);
@@ -59,8 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Determine Primary Image (First uploaded photo, or default built-in SVG)
-        $primaryImage = !empty($uploadedPhotos) ? $uploadedPhotos[0] : 'engine_1.svg';
+        // Optional preset/fallback image if no files uploaded
+        if (empty($uploadedPhotos)) {
+            $preset = trim(sanitize($_POST['preset_image'] ?? 'engine_1.svg'));
+            $uploadedPhotos[] = !empty($preset) ? $preset : 'engine_1.svg';
+        }
+
+        $primaryImage = $uploadedPhotos[0];
 
         try {
             // Check for duplicate SKU
@@ -70,24 +78,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sku .= '-' . rand(10, 99);
             }
 
-            // Insert Product into Database
+            // Insert product
             $stmt = $pdo->prepare("INSERT INTO products 
-                (name, sku, category_id, brand_id, model_compatibility, price, stock_quantity, image_url, description, is_featured) 
-                VALUES (?, ?, ?, ?, 'General JDM Fitment', ?, ?, ?, ?, 1)");
-            $stmt->execute([$name, $sku, $catId, $brandId, $price, $stock, $primaryImage, $desc]);
+                (name, sku, category_id, brand_id, model_compatibility, grade, price, stock_quantity, image_url, description, is_featured) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)");
+            $stmt->execute([$name, $sku, $catId, $brandId, $fitment, $grade, $price, $stock, $primaryImage, $desc]);
             $productId = $pdo->lastInsertId();
 
             // Insert all photos into product_images table
-            if (!empty($uploadedPhotos)) {
-                $imgStmt = $pdo->prepare("INSERT INTO product_images (product_id, image_path, is_primary) VALUES (?, ?, ?)");
-                foreach ($uploadedPhotos as $idx => $photo) {
-                    $isPrim = ($idx === 0) ? 1 : 0;
-                    $imgStmt->execute([$productId, $photo, $isPrim]);
-                }
+            $imgStmt = $pdo->prepare("INSERT INTO product_images (product_id, image_path, is_primary) VALUES (?, ?, ?)");
+            foreach ($uploadedPhotos as $idx => $photo) {
+                $isPrim = ($idx === 0) ? 1 : 0;
+                $imgStmt->execute([$productId, $photo, $isPrim]);
             }
 
-            $photoMsg = count($uploadedPhotos) > 0 ? " with " . count($uploadedPhotos) . " photo(s)" : "";
-            setFlash('success', "✓ Product \"{$name}\" (ID: {$sku}) added to database successfully{$photoMsg}!");
+            $photoCount = count($uploadedPhotos);
+            setFlash('success', "✓ Product \"{$name}\" (SKU: {$sku}) added successfully with {$photoCount} photo(s)!");
         } catch (Exception $e) {
             setFlash('error', "Database Error: " . $e->getMessage());
         }
@@ -96,9 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // -------------------------------------------------------------
-    // 2. UPDATE EXISTING PRODUCT (with Option to Add More Photos)
-    // -------------------------------------------------------------
+    // 2. UPDATE PRODUCT DETAILS & ADD MORE PHOTOS
     if ($action === 'update' && $pdo) {
         $id = (int)$_POST['id'];
         $sku = trim(sanitize($_POST['sku'] ?? ''));
@@ -107,11 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $brandId = (int)($_POST['brand_id'] ?? 1);
         $catId = (int)($_POST['category_id'] ?? 1);
         $stock = (int)($_POST['stock_quantity'] ?? 1);
+        $fitment = trim(sanitize($_POST['model_compatibility'] ?? ''));
+        $grade = trim(sanitize($_POST['grade'] ?? 'Grade A'));
         $desc = trim(sanitize($_POST['description'] ?? ''));
 
-        // Handle additional file uploads
+        // Handle newly uploaded additional photos
         $uploadedPhotos = [];
-        $uploadDir = __DIR__ . '/../assets/uploads/products/';
         if (isset($_FILES['additional_photos']) && is_array($_FILES['additional_photos']['name'])) {
             $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
             $fileCount = count($_FILES['additional_photos']['name']);
@@ -133,10 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         try {
-            $stmt = $pdo->prepare("UPDATE products SET name = ?, sku = ?, category_id = ?, brand_id = ?, price = ?, stock_quantity = ?, description = ? WHERE id = ?");
-            $stmt->execute([$name, $sku, $catId, $brandId, $price, $stock, $desc, $id]);
+            $stmt = $pdo->prepare("UPDATE products SET name = ?, sku = ?, category_id = ?, brand_id = ?, model_compatibility = ?, grade = ?, price = ?, stock_quantity = ?, description = ? WHERE id = ?");
+            $stmt->execute([$name, $sku, $catId, $brandId, $fitment, $grade, $price, $stock, $desc, $id]);
 
-            // Save additional photos if any
+            // Save additional photos if uploaded
             if (!empty($uploadedPhotos)) {
                 $imgStmt = $pdo->prepare("INSERT INTO product_images (product_id, image_path, is_primary) VALUES (?, ?, 0)");
                 foreach ($uploadedPhotos as $photo) {
@@ -149,53 +154,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setFlash('error', "Update failed: " . $e->getMessage());
         }
 
-        header('Location: products.php');
+        header("Location: products.php?edit={$id}");
         exit;
     }
 
-    // -------------------------------------------------------------
-    // 3. DELETE PRODUCT & ALL ATTACHED IMAGES
-    // -------------------------------------------------------------
+    // 3. SET PHOTO AS PRIMARY / COVER
+    if ($action === 'set_primary_photo' && $pdo) {
+        $photoId = (int)$_POST['photo_id'];
+        $prodId = (int)$_POST['product_id'];
+
+        if (setPrimaryProductPhoto($photoId, $prodId)) {
+            setFlash('success', "✓ Cover photo updated successfully!");
+        } else {
+            setFlash('error', "Failed to update cover photo.");
+        }
+
+        header("Location: products.php?edit={$prodId}");
+        exit;
+    }
+
+    // 4. DELETE INDIVIDUAL PHOTO
+    if ($action === 'delete_photo' && $pdo) {
+        $photoId = (int)$_POST['photo_id'];
+        $prodId = (int)$_POST['product_id'];
+
+        if (deleteProductPhoto($photoId, $prodId)) {
+            setFlash('info', "Photo removed successfully.");
+        } else {
+            setFlash('error', "Failed to remove photo.");
+        }
+
+        header("Location: products.php?edit={$prodId}");
+        exit;
+    }
+
+    // 5. DELETE PRODUCT ENTIRELY
     if ($action === 'delete' && $pdo) {
         $id = (int)$_POST['id'];
         $product = fetchProductById($id);
         $prodName = $product ? $product['name'] : "#{$id}";
 
         if (deleteProductById($id)) {
-            setFlash('info', "✓ Product \"{$prodName}\" and all associated photos permanently deleted from database.");
+            setFlash('info', "✓ Product \"{$prodName}\" and all associated photos permanently deleted.");
         } else {
             setFlash('error', "Failed to delete product #{$id}.");
         }
 
         header('Location: products.php');
-        exit;
-    }
-
-    // -------------------------------------------------------------
-    // 4. DELETE INDIVIDUAL PHOTO FROM A PRODUCT
-    // -------------------------------------------------------------
-    if ($action === 'delete_photo' && $pdo) {
-        $photoId = (int)$_POST['photo_id'];
-        $prodId = (int)$_POST['product_id'];
-
-        try {
-            $stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE id = ?");
-            $stmt->execute([$photoId]);
-            $path = $stmt->fetchColumn();
-
-            if ($path) {
-                $fullPath = __DIR__ . '/../assets/uploads/products/' . basename($path);
-                if (file_exists($fullPath) && is_file($fullPath)) {
-                    @unlink($fullPath);
-                }
-                $pdo->prepare("DELETE FROM product_images WHERE id = ?")->execute([$photoId]);
-                setFlash('info', "Photo removed successfully.");
-            }
-        } catch (Exception $e) {
-            setFlash('error', "Could not remove photo: " . $e->getMessage());
-        }
-
-        header("Location: products.php?edit={$prodId}");
         exit;
     }
 }
@@ -206,12 +211,8 @@ $editPhotos = [];
 if (isset($_GET['edit'])) {
     $editId = (int)$_GET['edit'];
     $editProduct = fetchProductById($editId);
-    if ($editProduct && $pdo) {
-        try {
-            $pStmt = $pdo->prepare("SELECT id, image_path FROM product_images WHERE product_id = ? ORDER BY id ASC");
-            $pStmt->execute([$editId]);
-            $editPhotos = $pStmt->fetchAll();
-        } catch (Exception $e) {}
+    if ($editProduct) {
+        $editPhotos = fetchProductPhotosMeta($editId);
     }
 }
 
@@ -290,33 +291,34 @@ $flash = getFlash();
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       z-index: 9999;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      backdrop-filter: blur(5px);
     }
     .modal-backdrop.active {
       display: flex;
     }
     .modal-box {
       background: #0d1424;
-      border: 1px solid rgba(6, 182, 212, 0.3);
+      border: 1px solid rgba(0, 229, 255, 0.3);
       border-radius: var(--radius-lg);
-      max-width: 680px;
+      max-width: 720px;
       width: 100%;
       max-height: 92vh;
       overflow-y: auto;
       padding: 30px;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(6, 182, 212, 0.15);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 35px rgba(0, 229, 255, 0.15);
     }
 
     /* Multi-File Upload Styling */
     .dropzone-box {
-      border: 2px dashed rgba(6, 182, 212, 0.35);
-      background: rgba(6, 182, 212, 0.04);
+      border: 2px dashed rgba(0, 229, 255, 0.35);
+      background: rgba(0, 229, 255, 0.04);
       border-radius: var(--radius-md);
-      padding: 26px;
+      padding: 24px;
       text-align: center;
       cursor: pointer;
       transition: all 0.25s ease;
@@ -324,7 +326,7 @@ $flash = getFlash();
     }
     .dropzone-box:hover, .dropzone-box.dragover {
       border-color: var(--neon-cyan);
-      background: rgba(6, 182, 212, 0.09);
+      background: rgba(0, 229, 255, 0.09);
     }
     .dropzone-box input[type="file"] {
       position: absolute;
@@ -334,16 +336,16 @@ $flash = getFlash();
     }
     .preview-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       gap: 12px;
       margin-top: 16px;
     }
     .preview-thumb {
       position: relative;
-      height: 75px;
+      height: 85px;
       border-radius: var(--radius-sm);
       overflow: hidden;
-      border: 2px solid rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.12);
       background: #040812;
     }
     .preview-thumb img {
@@ -355,19 +357,48 @@ $flash = getFlash();
       position: absolute;
       bottom: 2px;
       left: 2px;
-      background: rgba(0,0,0,0.8);
-      font-size: 8px;
-      font-weight: 700;
+      background: rgba(0,0,0,0.85);
+      font-size: 8.5px;
+      font-weight: 800;
       color: var(--neon-cyan);
-      padding: 1px 4px;
+      padding: 2px 5px;
       border-radius: 2px;
     }
     .preview-thumb.is-main {
-      border-color: var(--primary);
+      border-color: #00e5ff;
     }
     .preview-thumb.is-main .thumb-tag {
-      background: var(--primary);
-      color: #fff;
+      background: #00e5ff;
+      color: #000;
+    }
+
+    /* Photos Management Grid in Edit Modal */
+    .photo-manage-card {
+      position: relative;
+      background: #111a2e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .photo-manage-card.is-cover {
+      border-color: #00e5ff;
+      box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+    }
+    .photo-manage-img {
+      height: 90px;
+      width: 100%;
+      object-fit: cover;
+      background: #060a14;
+    }
+    .photo-manage-bar {
+      padding: 6px 8px;
+      background: #0a0f1d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
     }
 
     /* Product Table Styling */
@@ -394,7 +425,7 @@ $flash = getFlash();
       right: 1px;
       background: rgba(0, 0, 0, 0.85);
       color: #00F0FF;
-      font-size: 8px;
+      font-size: 8.5px;
       font-weight: 800;
       padding: 1px 4px;
       border-radius: 2px;
@@ -447,7 +478,7 @@ $flash = getFlash();
         <div>
           <h1 style="font-size: 26px; font-weight: 900; color: #fff; margin: 0;">PARTS &amp; MULTI-PHOTO INVENTORY</h1>
           <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
-            Easily add, delete, upload multiple photos, and manage prices in the live database
+            Add parts with multiple angle inspection photos, change cover pictures, and manage live prices
           </p>
         </div>
         
@@ -462,7 +493,7 @@ $flash = getFlash();
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;">
               <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
             </svg>
-            <span>+ Add New Product</span>
+            <span>+ Add Part With Multiple Photos</span>
           </button>
         </div>
       </div>
@@ -480,7 +511,7 @@ $flash = getFlash();
             <tr style="background: #0c121e; border-bottom: 1px solid var(--border-color); color: var(--text-dim); text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
               <th style="padding: 14px 18px;">Photo</th>
               <th style="padding: 14px 18px;">Product ID (SKU)</th>
-              <th style="padding: 14px 18px;">Product Name</th>
+              <th style="padding: 14px 18px;">Product Name &amp; Fitment</th>
               <th style="padding: 14px 18px;">Brand &amp; Category</th>
               <th style="padding: 14px 18px;">Price (LKR)</th>
               <th style="padding: 14px 18px;">Stock</th>
@@ -491,7 +522,7 @@ $flash = getFlash();
             <?php if (empty($products)): ?>
               <tr>
                 <td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted);">
-                  No products found in the database. Click "+ Add New Product" above to add your first part with photos!
+                  No products found in the database. Click "+ Add Part With Multiple Photos" above to add your first part!
                 </td>
               </tr>
             <?php else: ?>
@@ -506,7 +537,7 @@ $flash = getFlash();
                     <div class="product-thumb-container">
                       <img src="../<?= htmlspecialchars(getProductImageUrl($p['image_url'])) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
                       <?php if ($photoCount > 1): ?>
-                        <span class="badge-photo-count">📷 <?= $photoCount ?></span>
+                        <span class="badge-photo-count" title="<?= $photoCount ?> photos uploaded">📷 <?= $photoCount ?></span>
                       <?php endif; ?>
                     </div>
                   </td>
@@ -514,16 +545,15 @@ $flash = getFlash();
                   <!-- SKU / Product ID -->
                   <td style="padding: 12px 18px;">
                     <span class="sku-badge"><?= htmlspecialchars($p['sku']) ?></span>
+                    <div style="font-size: 10px; color: var(--text-dim); margin-top: 3px;"><?= htmlspecialchars($p['grade'] ?? 'Grade A') ?></div>
                   </td>
 
-                  <!-- Product Title -->
+                  <!-- Product Title & Fitment -->
                   <td style="padding: 12px 18px;">
                     <strong style="color: #fff; display: block; font-size: 14px;"><?= htmlspecialchars($p['name']) ?></strong>
-                    <?php if (!empty($p['description'])): ?>
-                      <span style="font-size: 11px; color: var(--text-muted); display: block; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        <?= htmlspecialchars($p['description']) ?>
-                      </span>
-                    <?php endif; ?>
+                    <span style="font-size: 11.5px; color: var(--text-muted); display: block;">
+                      🚗 Fits: <?= htmlspecialchars($p['model_compatibility'] ?? 'General JDM') ?>
+                    </span>
                   </td>
 
                   <!-- Brand & Category -->
@@ -552,21 +582,21 @@ $flash = getFlash();
                   <td style="padding: 12px 18px; text-align: right;">
                     <div class="flex gap-2" style="justify-content: flex-end;">
                       <!-- Public Preview Link -->
-                      <a href="../product-details.php?id=<?= $p['id'] ?>" target="_blank" class="btn btn-outline btn-sm" title="View in store" style="font-size: 11px; padding: 5px 9px;">
-                        👁️
+                      <a href="../product-details.php?id=<?= $p['id'] ?>" target="_blank" class="btn btn-outline btn-sm" title="View part in public store" style="font-size: 11px; padding: 5px 9px;">
+                        👁️ View
                       </a>
 
                       <!-- Edit Button -->
                       <a href="products.php?edit=<?= $p['id'] ?>" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 5px 10px;">
-                        ✏️ Edit
+                        ✏️ Edit &amp; Photos
                       </a>
 
                       <!-- Delete Button with Immediate Confirmation -->
-                      <form method="POST" action="products.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently delete \'<?= htmlspecialchars(addslashes($p['name'])) ?>\' and its photos from the database?');">
+                      <form method="POST" action="products.php" style="display:inline;" onsubmit="return confirm('Permanently delete \'<?= htmlspecialchars(addslashes($p['name'])) ?>\' and ALL attached photos?');">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?= $p['id'] ?>">
                         <button type="submit" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 5px 10px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
-                          🗑️ Delete
+                          🗑️
                         </button>
                       </form>
                     </div>
@@ -581,14 +611,14 @@ $flash = getFlash();
   </div>
 
   <!-- ------------------------------------------------------------- -->
-  <!-- MODAL 1: ADD NEW PRODUCT (SIMPLIFIED & MULTI-PHOTO UPLOAD)   -->
+  <!-- MODAL 1: ADD NEW PRODUCT WITH MULTIPLE PHOTO UPLOAD          -->
   <!-- ------------------------------------------------------------- -->
   <div id="addProductModal" class="modal-backdrop">
     <div class="modal-box">
-      <div class="flex justify-between items-center" style="margin-bottom: 22px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
         <div>
-          <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin: 0;">ADD NEW PRODUCT / SPARE PART</h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Enter essential details and upload multiple photos directly from your device</p>
+          <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin: 0;">ADD NEW PART &amp; MULTIPLE PHOTOS</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Select multiple inspection photos from your computer at once</p>
         </div>
         <button type="button" onclick="closeAddModal()" class="btn btn-outline btn-sm" style="padding: 4px 10px;">✕</button>
       </div>
@@ -603,11 +633,11 @@ $flash = getFlash();
               <label class="form-label" style="margin: 0;">Product ID / SKU *</label>
               <button type="button" onclick="generateRandomSku()" style="background: none; border: none; color: var(--neon-cyan); font-size: 11px; cursor: pointer; text-decoration: underline;">Auto-Gen</button>
             </div>
-            <input type="text" id="addSkuInput" name="sku" class="form-control" placeholder="e.g. PRD-101 or ENG-1NZ" required>
+            <input type="text" id="addSkuInput" name="sku" class="form-control" placeholder="e.g. ENG-1NZ-01" required>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Product Name *</label>
-            <input type="text" name="name" class="form-control" placeholder="e.g. Toyota 1NZ-FE VVT-i Engine Assembly" required>
+            <label class="form-label">Part Name *</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Honda K20A Type-R Red Top Engine" required>
           </div>
         </div>
 
@@ -634,7 +664,7 @@ $flash = getFlash();
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Category Group</label>
+            <label class="form-label">Component Category</label>
             <select name="category_id" class="form-control">
               <?php foreach ($categories as $c): ?>
                 <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
@@ -643,30 +673,50 @@ $flash = getFlash();
           </div>
         </div>
 
-        <!-- Row 4: Multiple Image Upload -->
+        <!-- Row 4: Vehicle Compatibility & Condition Grade -->
+        <div class="grid" style="grid-template-columns: 1.2fr 0.8fr; gap: 14px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Vehicle Fitment / Compatibility</label>
+            <input type="text" name="model_compatibility" class="form-control" placeholder="e.g. Corolla NZE141, Allion NZT260, Premio">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Condition Grade</label>
+            <select name="grade" class="form-control">
+              <option value="Grade A+">Grade A+ (Pristine Tested)</option>
+              <option value="Grade A" selected>Grade A (Inspected)</option>
+              <option value="Grade B">Grade B (Good Working)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 5: Multi-Image File Upload -->
         <div class="form-group" style="margin-bottom: 16px;">
-          <label class="form-label">Product Photos (Upload multiple images from your PC)</label>
+          <label class="form-label">
+            Part Photos (Select multiple files: Front, Rear, Tags, Internals)
+          </label>
+          
           <div class="dropzone-box" id="dropzoneBox">
             <input type="file" name="product_photos[]" id="productPhotosInput" multiple accept="image/jpeg,image/png,image/webp,image/svg+xml">
-            <div style="font-size: 28px; margin-bottom: 6px;">📷</div>
-            <strong style="color: #fff; display: block; font-size: 13px;">Click or Drag &amp; Drop Photos Here</strong>
-            <span style="font-size: 12px; color: var(--text-muted);">You can select multiple photos at once (JPG, PNG, WEBP)</span>
+            <div style="font-size: 32px; margin-bottom: 6px;">📷</div>
+            <strong style="color: #fff; display: block; font-size: 14px;">Click to Select Multiple Photos (or Drag &amp; Drop Here)</strong>
+            <span style="font-size: 12px; color: var(--text-muted);">Supports JPG, PNG, WEBP, SVG. You can pick multiple files at once!</span>
           </div>
-          <!-- Live Preview Grid -->
+
+          <!-- Live Preview Grid of Selected Photos -->
           <div id="imagePreviewGrid" class="preview-grid"></div>
         </div>
 
-        <!-- Row 5: Description -->
+        <!-- Row 6: Description -->
         <div class="form-group" style="margin-bottom: 20px;">
-          <label class="form-label">Description / Condition Notes</label>
-          <textarea name="description" class="form-control" rows="3" placeholder="Enter details like vehicle fitment, tested compression, included accessories, or warranty terms..."></textarea>
+          <label class="form-label">Description / Inspection Notes</label>
+          <textarea name="description" class="form-control" rows="3" placeholder="Compression tested, cold-start verified, included manifolds, sensors..."></textarea>
         </div>
 
         <!-- Submit Button -->
         <div class="flex justify-between items-center" style="border-top: 1px solid var(--border-color); padding-top: 16px;">
           <button type="button" onclick="closeAddModal()" class="btn btn-secondary">Cancel</button>
           <button type="submit" class="btn btn-primary btn-lg">
-            <span>✓ Save Product to Database</span>
+            <span>✓ Save Part &amp; Upload Photos</span>
           </button>
         </div>
       </form>
@@ -674,30 +724,63 @@ $flash = getFlash();
   </div>
 
   <!-- ------------------------------------------------------------- -->
-  <!-- MODAL 2: EDIT PRODUCT & MANAGE ITS PHOTOS                     -->
+  <!-- MODAL 2: EDIT PRODUCT & MANAGE ITS GALLERY PHOTOS             -->
   <!-- ------------------------------------------------------------- -->
   <?php if ($editProduct): ?>
     <div id="editProductModal" class="modal-backdrop active">
       <div class="modal-box">
-        <div class="flex justify-between items-center" style="margin-bottom: 22px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+        <div class="flex justify-between items-center" style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
           <div>
-            <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin: 0;">EDIT PRODUCT: <?= htmlspecialchars($editProduct['name']) ?></h3>
-            <span style="font-size: 12px; color: var(--neon-cyan);">SKU: <?= htmlspecialchars($editProduct['sku']) ?></span>
+            <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin: 0;">EDIT PART &amp; GALLERY PHOTOS</h3>
+            <span style="font-size: 12px; color: var(--neon-cyan);">SKU: <?= htmlspecialchars($editProduct['sku']) ?> &bull; #<?= $editProduct['id'] ?></span>
           </div>
           <a href="products.php" class="btn btn-outline btn-sm" style="padding: 4px 10px;">✕</a>
         </div>
 
+        <!-- Section 1: Manage Existing Gallery Photos -->
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 18px; margin-bottom: 22px;">
+          <div class="flex justify-between items-center" style="margin-bottom: 12px;">
+            <strong style="color: #fff; font-size: 13.5px;">Attached Photos (<?= count($editPhotos) ?>)</strong>
+            <span style="font-size: 11.5px; color: var(--text-muted);">Set cover photo or remove angle shots</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px;">
+            <?php foreach ($editPhotos as $pIdx => $ep): ?>
+              <?php $isCover = !empty($ep['is_primary']); ?>
+              <div class="photo-manage-card <?= $isCover ? 'is-cover' : '' ?>">
+                <img src="../<?= htmlspecialchars(getProductImageUrl($ep['image_path'])) ?>" class="photo-manage-img" alt="Photo <?= $pIdx + 1 ?>">
+                <div class="photo-manage-bar">
+                  <?php if ($isCover): ?>
+                    <span style="color: #00e5ff; font-size: 10px; font-weight: 800; font-family: var(--font-mono);">⭐ COVER</span>
+                  <?php else: ?>
+                    <button type="button" class="btn btn-sm" style="font-size: 10px; padding: 2px 6px; background: rgba(0, 229, 255, 0.15); color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.3);" onclick="setCoverPhoto(<?= $ep['id'] ?>, <?= $editProduct['id'] ?>)">
+                      Make Cover
+                    </button>
+                  <?php endif; ?>
+
+                  <?php if (count($editPhotos) > 1): ?>
+                    <button type="button" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer;" onclick="deleteSinglePhoto(<?= $ep['id'] ?>, <?= $editProduct['id'] ?>)">
+                      🗑️
+                    </button>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+
+        <!-- Section 2: Edit Details & Upload Additional Photos Form -->
         <form method="POST" action="products.php" enctype="multipart/form-data">
           <input type="hidden" name="action" value="update">
           <input type="hidden" name="id" value="<?= $editProduct['id'] ?>">
 
           <div class="grid" style="grid-template-columns: 0.8fr 1.2fr; gap: 14px; margin-bottom: 14px;">
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Product ID / SKU *</label>
+              <label class="form-label">SKU / ID *</label>
               <input type="text" name="sku" class="form-control" value="<?= htmlspecialchars($editProduct['sku']) ?>" required>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label">Product Name *</label>
+              <label class="form-label">Part Name *</label>
               <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($editProduct['name']) ?>" required>
             </div>
           </div>
@@ -732,50 +815,50 @@ $flash = getFlash();
             </div>
           </div>
 
-          <!-- Existing Photos List -->
-          <?php if (!empty($editPhotos)): ?>
-            <div class="form-group" style="margin-bottom: 14px;">
-              <label class="form-label">Current Gallery Photos</label>
-              <div class="preview-grid" style="margin-top: 6px;">
-                <?php foreach ($editPhotos as $pIndex => $ep): ?>
-                  <div class="preview-thumb <?= $pIndex === 0 ? 'is-main' : '' ?>" style="display: flex; flex-direction: column;">
-                    <img src="../<?= htmlspecialchars(getProductImageUrl($ep['image_path'])) ?>">
-                    <span class="thumb-tag"><?= $pIndex === 0 ? 'Cover' : 'Photo #' . ($pIndex + 1) ?></span>
-                    <?php if (count($editPhotos) > 1): ?>
-                      <form method="POST" action="products.php" onsubmit="return confirm('Remove this photo?');" style="position: absolute; top: 2px; right: 2px; z-index: 10;">
-                        <input type="hidden" name="action" value="delete_photo">
-                        <input type="hidden" name="photo_id" value="<?= $ep['id'] ?>">
-                        <input type="hidden" name="product_id" value="<?= $editProduct['id'] ?>">
-                        <button type="submit" style="background: rgba(239, 68, 68, 0.9); border: none; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;">✕</button>
-                      </form>
-                    <?php endif; ?>
-                  </div>
-                <?php endforeach; ?>
-              </div>
+          <div class="grid" style="grid-template-columns: 1.2fr 0.8fr; gap: 14px; margin-bottom: 14px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Vehicle Fitment</label>
+              <input type="text" name="model_compatibility" class="form-control" value="<?= htmlspecialchars($editProduct['model_compatibility'] ?? '') ?>">
             </div>
-          <?php endif; ?>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Grade</label>
+              <select name="grade" class="form-control">
+                <option value="Grade A+" <?= ($editProduct['grade'] ?? '') === 'Grade A+' ? 'selected' : '' ?>>Grade A+ (Pristine)</option>
+                <option value="Grade A" <?= ($editProduct['grade'] ?? '') === 'Grade A' ? 'selected' : '' ?>>Grade A (Inspected)</option>
+                <option value="Grade B" <?= ($editProduct['grade'] ?? '') === 'Grade B' ? 'selected' : '' ?>>Grade B (Working)</option>
+              </select>
+            </div>
+          </div>
 
-          <!-- Upload Additional Photos -->
-          <div class="form-group" style="margin-bottom: 14px;">
-            <label class="form-label">Add More Photos (Optional)</label>
-            <input type="file" name="additional_photos[]" class="form-control" multiple accept="image/*">
+          <!-- Upload More Photos -->
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">Upload Additional Photos to this Part</label>
+            <input type="file" name="additional_photos[]" id="editAddPhotosInput" class="form-control" multiple accept="image/*">
+            <div id="editPreviewGrid" class="preview-grid"></div>
           </div>
 
           <div class="form-group" style="margin-bottom: 20px;">
-            <label class="form-label">Description</label>
+            <label class="form-label">Description / Specs</label>
             <textarea name="description" class="form-control" rows="3"><?= htmlspecialchars($editProduct['description'] ?? '') ?></textarea>
           </div>
 
           <div class="flex justify-between items-center" style="border-top: 1px solid var(--border-color); padding-top: 16px;">
-            <a href="products.php" class="btn btn-secondary">Cancel</a>
+            <a href="products.php" class="btn btn-secondary">Close</a>
             <button type="submit" class="btn btn-primary">
-              <span>✓ Update Product Changes</span>
+              <span>✓ Save Product Updates</span>
             </button>
           </div>
         </form>
       </div>
     </div>
   <?php endif; ?>
+
+  <!-- Standalone Photo Action Form (Avoids any nested form issues) -->
+  <form id="standalonePhotoForm" method="POST" action="products.php" style="display: none;">
+    <input type="hidden" name="action" id="standalonePhotoAction" value="">
+    <input type="hidden" name="photo_id" id="standalonePhotoId" value="">
+    <input type="hidden" name="product_id" id="standaloneProductId" value="">
+  </form>
 
   <script>
     function openAddModal() {
@@ -792,7 +875,24 @@ $flash = getFlash();
       document.getElementById('addSkuInput').value = `${randPrefix}-${randNum}`;
     }
 
-    // Live Multi-Image Selection Preview Handler
+    // Photo Action Triggers
+    function setCoverPhoto(photoId, prodId) {
+      document.getElementById('standalonePhotoAction').value = 'set_primary_photo';
+      document.getElementById('standalonePhotoId').value = photoId;
+      document.getElementById('standaloneProductId').value = prodId;
+      document.getElementById('standalonePhotoForm').submit();
+    }
+
+    function deleteSinglePhoto(photoId, prodId) {
+      if (confirm('Permanently remove this photo?')) {
+        document.getElementById('standalonePhotoAction').value = 'delete_photo';
+        document.getElementById('standalonePhotoId').value = photoId;
+        document.getElementById('standaloneProductId').value = prodId;
+        document.getElementById('standalonePhotoForm').submit();
+      }
+    }
+
+    // Live Multi-Image Selection Preview Handler for Add Modal
     const photosInput = document.getElementById('productPhotosInput');
     const previewGrid = document.getElementById('imagePreviewGrid');
 
@@ -824,6 +924,44 @@ $flash = getFlash();
           };
           reader.readAsDataURL(file);
         });
+      });
+    }
+
+    // Live Preview for Edit Modal Additional Photos
+    const editAddPhotosInput = document.getElementById('editAddPhotosInput');
+    const editPreviewGrid = document.getElementById('editPreviewGrid');
+    if (editAddPhotosInput && editPreviewGrid) {
+      editAddPhotosInput.addEventListener('change', function(e) {
+        editPreviewGrid.innerHTML = '';
+        const files = Array.from(e.target.files);
+        files.forEach((file, index) => {
+          if (!file.type.startsWith('image/')) return;
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            const thumb = document.createElement('div');
+            thumb.className = 'preview-thumb';
+            const img = document.createElement('img');
+            img.src = evt.target.result;
+            thumb.appendChild(img);
+            const tag = document.createElement('span');
+            tag.className = 'thumb-tag';
+            tag.textContent = `New #${index + 1}`;
+            thumb.appendChild(tag);
+            editPreviewGrid.appendChild(thumb);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+    }
+
+    // Drag and Drop styling
+    const dropzone = document.getElementById('dropzoneBox');
+    if (dropzone) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, e => { e.preventDefault(); dropzone.classList.add('dragover'); }, false);
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }, false);
       });
     }
 

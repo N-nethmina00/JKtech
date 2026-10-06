@@ -115,8 +115,6 @@
       </div>
       <div class="footer-middle-note" style="display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap;">
         <span>Reconditioned Automotive Imports Sri Lanka.</span>
-        <span style="color: #64748b;">•</span>
-        <span style="color: #00e5ff; font-weight: 700; font-size: 11.5px;">🔒 Secured by PayHere Gateway (Visa / Mastercard / AMEX)</span>
       </div>
       <div class="footer-bottom-links">
         <a href="#">Terms of Service</a>

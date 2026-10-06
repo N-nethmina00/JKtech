@@ -733,19 +733,44 @@ $flash = getFlash();
     <div class="product-details-layout">
       <!-- Left Column: Gallery & Trust Badges -->
       <div class="gallery-container">
-        <!-- Main Image Card with Grade Overlay -->
-        <div class="main-image-card">
+        <!-- Main Image Card with Grade Overlay, Arrows, Zoom & Counter -->
+        <div class="main-image-card" id="mainGalleryCard">
           <span class="grade-badge-overlay"><?= htmlspecialchars($product['grade'] ?? 'GRADE A+ TESTED') ?></span>
-          <img id="mainGalleryImg" src="<?= htmlspecialchars(getProductImageUrl($firstImage)) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+          
+          <!-- Zoom to Lightbox Button -->
+          <button type="button" class="gallery-zoom-btn" onclick="openLightbox()" title="View full-size photo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="11" y1="8" x2="11" y2="14"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </button>
+
+          <!-- Prev/Next Navigation Arrows -->
+          <?php if (count($galleryImages) > 1): ?>
+            <button type="button" class="gallery-nav-btn prev-btn" onclick="prevGalleryImage()" title="Previous photo (Left Arrow)">
+              &#10094;
+            </button>
+            <button type="button" class="gallery-nav-btn next-btn" onclick="nextGalleryImage()" title="Next photo (Right Arrow)">
+              &#10095;
+            </button>
+          <?php endif; ?>
+
+          <img id="mainGalleryImg" src="<?= htmlspecialchars(getProductImageUrl($firstImage)) ?>" alt="<?= htmlspecialchars($product['name']) ?>" onclick="openLightbox()" style="cursor: zoom-in;">
+
+          <?php if (count($galleryImages) > 1): ?>
+            <span class="photo-counter-badge" id="photoCounterBadge">📷 1 / <?= count($galleryImages) ?></span>
+          <?php endif; ?>
         </div>
 
         <!-- Thumbnails (if multiple images exist) -->
         <?php if (count($galleryImages) > 1): ?>
-          <div class="thumb-strip">
+          <div class="thumb-strip" id="galleryThumbStrip">
             <?php foreach ($galleryImages as $idx => $tImg): ?>
               <?php $thumbUrl = getProductImageUrl($tImg); ?>
-              <div class="thumb-strip-item <?= $idx === 0 ? 'active' : '' ?>" onclick="changeImage('<?= htmlspecialchars($thumbUrl) ?>', this)">
-                <img src="<?= htmlspecialchars($thumbUrl) ?>" alt="Thumb <?= $idx + 1 ?>">
+              <div class="thumb-strip-item <?= $idx === 0 ? 'active' : '' ?>" data-index="<?= $idx ?>" onclick="selectGalleryIndex(<?= $idx ?>)">
+                <img src="<?= htmlspecialchars($thumbUrl) ?>" alt="Photo <?= $idx + 1 ?>">
               </div>
             <?php endforeach; ?>
           </div>
@@ -998,20 +1023,96 @@ $flash = getFlash();
     </div>
   </div>
 
+  <!-- High-Resolution Lightbox Modal -->
+  <div id="galleryLightbox" class="lightbox-modal" onclick="if(event.target === this) closeLightbox()">
+    <div class="lightbox-content">
+      <button type="button" class="lightbox-close-btn" onclick="closeLightbox()" title="Close (Esc)">✕</button>
+      <?php if (count($galleryImages) > 1): ?>
+        <button type="button" class="gallery-nav-btn prev-btn" onclick="prevGalleryImage()" style="left:-50px;" title="Previous photo">&#10094;</button>
+        <button type="button" class="gallery-nav-btn next-btn" onclick="nextGalleryImage()" style="right:-50px;" title="Next photo">&#10095;</button>
+      <?php endif; ?>
+      <img id="lightboxImg" src="<?= htmlspecialchars(getProductImageUrl($firstImage)) ?>" alt="Zoomed View">
+    </div>
+  </div>
+
   <!-- JKtech.LK Precision Footer -->
   <?php include __DIR__ . '/includes/footer.php'; ?>
 
-  <!-- Image Switcher & Quantity Stepper Scripts -->
+  <!-- Image Switcher, Multi-Image Gallery, Lightbox & Quantity Scripts -->
   <script>
-    function changeImage(src, el) {
-      const img = document.getElementById('mainGalleryImg');
-      img.style.opacity = '0';
-      setTimeout(() => {
-        img.src = src;
-        img.style.opacity = '1';
-      }, 180);
-      document.querySelectorAll('.thumb-strip-item').forEach(t => t.classList.remove('active'));
-      el.classList.add('active');
+    const galleryImages = <?= json_encode(array_values(array_map('getProductImageUrl', $galleryImages))) ?>;
+    let currentGalleryIndex = 0;
+
+    function selectGalleryIndex(idx) {
+      if (!galleryImages || galleryImages.length === 0) return;
+      if (idx < 0) idx = galleryImages.length - 1;
+      if (idx >= galleryImages.length) idx = 0;
+      currentGalleryIndex = idx;
+      
+      const newSrc = galleryImages[idx];
+      const mainImg = document.getElementById('mainGalleryImg');
+      const lightImg = document.getElementById('lightboxImg');
+      const counter = document.getElementById('photoCounterBadge');
+
+      if (mainImg) {
+        mainImg.style.opacity = '0';
+        setTimeout(() => {
+          mainImg.src = newSrc;
+          mainImg.style.opacity = '1';
+        }, 160);
+      }
+      if (lightImg) lightImg.src = newSrc;
+      if (counter) counter.textContent = `📷 ${idx + 1} / ${galleryImages.length}`;
+
+      document.querySelectorAll('.thumb-strip-item').forEach((t, i) => {
+        if (i === idx) {
+          t.classList.add('active');
+          t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+          t.classList.remove('active');
+        }
+      });
+    }
+
+    function nextGalleryImage() {
+      selectGalleryIndex(currentGalleryIndex + 1);
+    }
+
+    function prevGalleryImage() {
+      selectGalleryIndex(currentGalleryIndex - 1);
+    }
+
+    function openLightbox() {
+      const modal = document.getElementById('galleryLightbox');
+      if (modal) modal.classList.add('active');
+    }
+
+    function closeLightbox() {
+      const modal = document.getElementById('galleryLightbox');
+      if (modal) modal.classList.remove('active');
+    }
+
+    // Keyboard Navigation (Arrow Keys and Escape)
+    window.addEventListener('keydown', (e) => {
+      if (galleryImages.length > 1) {
+        if (e.key === 'ArrowRight') nextGalleryImage();
+        if (e.key === 'ArrowLeft') prevGalleryImage();
+      }
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // Touch Swipe Navigation on Mobile
+    let touchStartX = 0;
+    const cardEl = document.getElementById('mainGalleryCard');
+    if (cardEl) {
+      cardEl.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+      cardEl.addEventListener('touchend', e => {
+        const touchEndX = e.changedTouches[0].screenX;
+        if (touchEndX < touchStartX - 40) nextGalleryImage();
+        if (touchEndX > touchStartX + 40) prevGalleryImage();
+      }, { passive: true });
     }
 
     function adjustQty(amount) {

@@ -512,7 +512,7 @@ function getProductImageUrl($image) {
 }
 
 /**
- * Fetch all gallery photos associated with a product
+ * Fetch all gallery photo paths associated with a product (Primary photo is always index 0)
  */
 function fetchProductImages($productId) {
     $productId = (int)$productId;
@@ -521,7 +521,7 @@ function fetchProductImages($productId) {
 
     if ($pdo) {
         try {
-            $stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ? ORDER BY id ASC");
+            $stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, id ASC");
             $stmt->execute([$productId]);
             $images = $stmt->fetchAll(PDO::FETCH_COLUMN);
         } catch (Exception $e) {
@@ -529,7 +529,7 @@ function fetchProductImages($productId) {
         }
     }
 
-    // If no secondary images found in product_images, use the product's primary image
+    // If no records in product_images, fallback to product's image_url
     if (empty($images)) {
         $p = fetchProductById($productId);
         if ($p && !empty($p['image_url'])) {
@@ -539,7 +539,103 @@ function fetchProductImages($productId) {
         }
     }
 
-    return $images;
+    return array_values(array_unique($images));
+}
+
+/**
+ * Fetch all photos for a product with full metadata (id, image_path, is_primary)
+ */
+function fetchProductPhotosMeta($productId) {
+    $productId = (int)$productId;
+    $pdo = getDbConnection();
+    $photos = [];
+
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT id, image_path, is_primary FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, id ASC");
+            $stmt->execute([$productId]);
+            $photos = $stmt->fetchAll();
+        } catch (Exception $e) {}
+    }
+
+    if (empty($photos)) {
+        $p = fetchProductById($productId);
+        $primary = ($p && !empty($p['image_url'])) ? $p['image_url'] : 'engine_1.svg';
+        $photos[] = [
+            'id' => 0,
+            'image_path' => $primary,
+            'is_primary' => 1
+        ];
+    }
+
+    return $photos;
+}
+
+/**
+ * Set a specific photo as the primary cover photo for a product
+ */
+function setPrimaryProductPhoto($photoId, $productId) {
+    $photoId = (int)$photoId;
+    $productId = (int)$productId;
+    $pdo = getDbConnection();
+    if (!$pdo) return false;
+
+    try {
+        $stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE id = ? AND product_id = ?");
+        $stmt->execute([$photoId, $productId]);
+        $path = $stmt->fetchColumn();
+        if (!$path) return false;
+
+        $pdo->prepare("UPDATE product_images SET is_primary = 0 WHERE product_id = ?")->execute([$productId]);
+        $pdo->prepare("UPDATE product_images SET is_primary = 1 WHERE id = ?")->execute([$photoId]);
+        $pdo->prepare("UPDATE products SET image_url = ? WHERE id = ?")->execute([$path, $productId]);
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
+ * Delete a single photo from a product and disk
+ */
+function deleteProductPhoto($photoId, $productId) {
+    $photoId = (int)$photoId;
+    $productId = (int)$productId;
+    $pdo = getDbConnection();
+    if (!$pdo) return false;
+
+    try {
+        $stmt = $pdo->prepare("SELECT image_path, is_primary FROM product_images WHERE id = ? AND product_id = ?");
+        $stmt->execute([$photoId, $productId]);
+        $photo = $stmt->fetch();
+        if (!$photo) return false;
+
+        // Delete from disk if in uploads directory
+        $baseName = basename($photo['image_path']);
+        $filePath = __DIR__ . '/../assets/uploads/products/' . $baseName;
+        if (file_exists($filePath) && is_file($filePath)) {
+            @unlink($filePath);
+        }
+
+        // Delete DB record
+        $pdo->prepare("DELETE FROM product_images WHERE id = ?")->execute([$photoId]);
+
+        // If it was primary cover photo, promote next photo to primary
+        if (!empty($photo['is_primary'])) {
+            $next = $pdo->prepare("SELECT id, image_path FROM product_images WHERE product_id = ? ORDER BY id ASC LIMIT 1");
+            $next->execute([$productId]);
+            $nextPhoto = $next->fetch();
+            if ($nextPhoto) {
+                $pdo->prepare("UPDATE product_images SET is_primary = 1 WHERE id = ?")->execute([$nextPhoto['id']]);
+                $pdo->prepare("UPDATE products SET image_url = ? WHERE id = ?")->execute([$nextPhoto['image_path'], $productId]);
+            } else {
+                $pdo->prepare("UPDATE products SET image_url = 'engine_1.svg' WHERE id = ?")->execute([$productId]);
+            }
+        }
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
 }
 
 /**

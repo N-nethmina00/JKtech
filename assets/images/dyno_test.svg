@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="dynoBg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#141f36"/>
+      <stop offset="60%" stop-color="#090e1a"/>
+      <stop offset="100%" stop-color="#04060c"/>
+    </radialGradient>
+    <linearGradient id="cyanBar" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="70%" stop-color="#00e5ff"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="500" height="360" rx="14" fill="url(#dynoBg)"/>
+
+  <!-- Oscilloscope Grid -->
+  <g opacity="0.08" stroke="#00e5ff" stroke-width="1">
+    <line x1="50" y1="0" x2="50" y2="360"/>
+    <line x1="150" y1="0" x2="150" y2="360"/>
+    <line x1="250" y1="0" x2="250" y2="360"/>
+    <line x1="350" y1="0" x2="350" y2="360"/>
+    <line x1="450" y1="0" x2="450" y2="360"/>
+    <line x1="0" y1="90" x2="500" y2="90"/>
+    <line x1="0" y1="180" x2="500" y2="180"/>
+    <line x1="0" y1="270" x2="500" y2="270"/>
+  </g>
+
+  <!-- Title Badge -->
+  <rect x="35" y="28" width="220" height="26" rx="4" fill="rgba(0,229,255,0.1)" stroke="rgba(0,229,255,0.3)"/>
+  <text x="45" y="45" fill="#00e5ff" font-family="'Courier New', monospace" font-size="11" font-weight="bold">BENCH LOG: CYLINDER COMPRESSION</text>
+
+  <!-- Compression Bars Container -->
+  <rect x="55" y="75" width="390" height="235" rx="10" fill="#0b1120" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- Baseline target line 12.8 bar -->
+  <line x1="75" y1="120" x2="425" y2="120" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <text x="355" y="114" fill="#f59e0b" font-family="'Courier New', monospace" font-size="10">OEM: 12.8 BAR</text>
+
+  <!-- Bar 1 (Cylinder 1) -->
+  <rect x="95" y="125" width="48" height="135" rx="4" fill="url(#cyanBar)"/>
+  <text x="100" y="240" fill="#fff" font-family="'Courier New', monospace" font-size="12" font-weight="bold">12.8</text>
+  <text x="102" y="280" fill="#94a3b8" font-family="'Courier New', monospace" font-size="11">CYL 1</text>
+
+  <!-- Bar 2 (Cylinder 2) -->
+  <rect x="180" y="127" width="48" height="133" rx="4" fill="url(#cyanBar)"/>
+  <text x="185" y="240" fill="#fff" font-family="'Courier New', monospace" font-size="12" font-weight="bold">12.7</text>
+  <text x="187" y="280" fill="#94a3b8" font-family="'Courier New', monospace" font-size="11">CYL 2</text>
+
+  <!-- Bar 3 (Cylinder 3) -->
+  <rect x="265" y="125" width="48" height="135" rx="4" fill="url(#cyanBar)"/>
+  <text x="270" y="240" fill="#fff" font-family="'Courier New', monospace" font-size="12" font-weight="bold">12.8</text>
+  <text x="272" y="280" fill="#94a3b8" font-family="'Courier New', monospace" font-size="11">CYL 3</text>
+
+  <!-- Bar 4 (Cylinder 4) -->
+  <rect x="350" y="126" width="48" height="134" rx="4" fill="url(#cyanBar)"/>
+  <text x="355" y="240" fill="#fff" font-family="'Courier New', monospace" font-size="12" font-weight="bold">12.8</text>
+  <text x="357" y="280" fill="#94a3b8" font-family="'Courier New', monospace" font-size="11">CYL 4</text>
+
+  <!-- Status pill -->
+  <rect x="325" y="28" width="140" height="26" rx="4" fill="rgba(16,185,129,0.15)" stroke="#10b981"/>
+  <text x="340" y="45" fill="#10b981" font-family="'Courier New', monospace" font-size="11" font-weight="bold">&#10003; 0% LEAKDOWN</text>
+</svg>

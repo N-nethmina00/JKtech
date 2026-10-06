@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 360" width="100%" height="100%">
+  <defs>
+    <radialGradient id="detailBg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#141f36"/>
+      <stop offset="60%" stop-color="#090e1a"/>
+      <stop offset="100%" stop-color="#04060c"/>
+    </radialGradient>
+    <linearGradient id="metallicPlate" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="goldHologram" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="500" height="360" rx="14" fill="url(#detailBg)"/>
+
+  <!-- Grid overlay -->
+  <g opacity="0.08" stroke="#00e5ff" stroke-width="1">
+    <line x1="50" y1="0" x2="50" y2="360"/>
+    <line x1="150" y1="0" x2="150" y2="360"/>
+    <line x1="250" y1="0" x2="250" y2="360"/>
+    <line x1="350" y1="0" x2="350" y2="360"/>
+    <line x1="450" y1="0" x2="450" y2="360"/>
+    <line x1="0" y1="90" x2="500" y2="90"/>
+    <line x1="0" y1="180" x2="500" y2="180"/>
+    <line x1="0" y1="270" x2="500" y2="270"/>
+  </g>
+
+  <!-- Title Badge -->
+  <rect x="35" y="28" width="180" height="26" rx="4" fill="rgba(0,229,255,0.1)" stroke="rgba(0,229,255,0.3)"/>
+  <text x="45" y="45" fill="#00e5ff" font-family="'Courier New', monospace" font-size="11" font-weight="bold">ANGLE B: SERIAL &amp; VALVE TRAIN</text>
+
+  <!-- Main Engine Block Close-up Graphic -->
+  <rect x="70" y="80" width="360" height="210" rx="12" fill="url(#metallicPlate)" stroke="#334155" stroke-width="2"/>
+  
+  <!-- Cylinder Cam Cover Ridges -->
+  <line x1="90" y1="110" x2="410" y2="110" stroke="#00e5ff" stroke-width="2" opacity="0.6"/>
+  <line x1="90" y1="125" x2="410" y2="125" stroke="#475569" stroke-width="1.5"/>
+  <line x1="90" y1="140" x2="410" y2="140" stroke="#475569" stroke-width="1.5"/>
+
+  <!-- 4 Coils & Connectors -->
+  <g fill="#090e1a" stroke="#00e5ff" stroke-width="1.5">
+    <rect x="110" y="155" width="45" height="35" rx="4"/>
+    <rect x="190" y="155" width="45" height="35" rx="4"/>
+    <rect x="270" y="155" width="45" height="35" rx="4"/>
+    <rect x="350" y="155" width="45" height="35" rx="4"/>
+  </g>
+  <g fill="#10b981">
+    <circle cx="132" cy="172" r="4"/>
+    <circle cx="212" cy="172" r="4"/>
+    <circle cx="292" cy="172" r="4"/>
+    <circle cx="372" cy="172" r="4"/>
+  </g>
+
+  <!-- Genuine JDM Serial Plate -->
+  <rect x="110" y="210" width="285" height="55" rx="4" fill="#020617" stroke="url(#goldHologram)" stroke-width="1.5"/>
+  <text x="125" y="230" fill="#f59e0b" font-family="'Courier New', monospace" font-size="11" font-weight="bold">YOKOHAMA JEVIC INSPECTION CERTIFIED</text>
+  <text x="125" y="250" fill="#e2e8f0" font-family="'Courier New', monospace" font-size="13" font-weight="900" letter-spacing="1">SER: 1NZ-FE #9482104-JP</text>
+
+  <!-- Live Quality Chip -->
+  <rect x="360" y="28" width="105" height="26" rx="4" fill="rgba(16,185,129,0.15)" stroke="#10b981"/>
+  <text x="375" y="45" fill="#10b981" font-family="'Courier New', monospace" font-size="11" font-weight="bold">100% PASS</text>
+</svg>
