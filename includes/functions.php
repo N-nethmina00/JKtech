@@ -194,7 +194,7 @@ function getFallbackProducts() {
             'year_to' => 2016,
             'grade' => 'Grade A+',
             'mileage' => '48,200 km',
-            'compression' => '12.8 bar across all cylinders',
+            'compression' => 'Tested',
             'price' => 185000.00,
             'stock_quantity' => 4,
             'image_url' => 'engine_1.svg',

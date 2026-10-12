@@ -171,9 +171,6 @@ $flash = getFlash();
         
         <div class="flex items-center gap-3">
           <span class="badge badge-grade" style="font-size:12px;"><?= count($customers) ?> Accounts in Database</span>
-          <div style="font-size: 11px; font-family:var(--font-mono); font-weight:700; color:#00e5ff; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.3); padding:6px 12px; border-radius:var(--radius-pill);">
-            <?= htmlspecialchars($dbStatus['badge']) ?>
-          </div>
           <button type="button" onclick="toggleAddCustomer()" class="btn btn-primary btn-sm">+ Add Account</button>
         </div>
       </div>

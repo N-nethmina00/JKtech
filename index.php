@@ -448,10 +448,6 @@ if (empty($featuredProducts)) $featuredProducts = array_slice($allProducts, 0, 6
               </h3>
               <div class="card-meta">
                 <p><strong>Fits:</strong> <?= htmlspecialchars($item['model_compatibility']) ?></p>
-                <p style="color:var(--neon-emerald); margin-top:6px; font-weight:700; display:flex; align-items:center;">
-                  <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981; margin-right:8px; animation:pulseGlow 1.5s infinite;"></span>
-                  <span><?= htmlspecialchars($item['compression']) ?></span>
-                </p>
               </div>
               <div class="card-footer">
                 <span class="card-price"><?= formatCurrency($item['price']) ?></span>

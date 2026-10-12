@@ -5,7 +5,9 @@ require_once __DIR__ . '/includes/functions.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $productId = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
-    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+           || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
+           || (isset($_POST['ajax']) && $_POST['ajax'] == '1');
 
     if ($action === 'add') {
         $qty = isset($_POST['quantity']) ? max(1, (int)$_POST['quantity']) : 1;
@@ -15,7 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode([
                 'success' => true,
                 'cart_count' => getCartCount(),
-                'cart_subtotal' => formatCurrency(getCartSubtotal())
+                'cart_subtotal' => formatCurrency(getCartSubtotal()),
+                'message' => 'Part added to cart successfully!'
             ]);
             exit;
         }

@@ -374,6 +374,9 @@ function seedDefaultData($pdo) {
                 }
             }
         }
+
+        // Clean any old mock compression values across products table
+        $pdo->exec("UPDATE products SET compression = '' WHERE compression LIKE '%12.8 bar%'");
     } catch (Exception $ex) {
         // Table initialization or seeding handled gracefully
     }
