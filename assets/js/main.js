@@ -309,7 +309,143 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => alert.remove(), 400);
         }, 5000);
     });
+
+    // -------------------------------------------------------------
+    // 10. Global AJAX Add to Cart & Realtime Cart Badge Sync
+    // -------------------------------------------------------------
+    // Quick Add buttons across all pages (.btn-quick-add)
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-quick-add');
+        if (!btn) return;
+
+        e.preventDefault();
+        const productId = btn.getAttribute('data-product-id');
+        if (!productId) return;
+
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<span>Adding...</span>';
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'add');
+            formData.append('product_id', productId);
+            formData.append('quantity', 1);
+            formData.append('ajax', '1');
+
+            const res = await fetch('cart.php', {
+                method: 'POST',
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data && data.success) {
+                updateNavCartCount(data.cart_count);
+                showToast('✓ ' + (data.message || 'Added to cart successfully!'), 'success');
+                btn.innerHTML = '<span>✓ Added!</span>';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 1200);
+            } else {
+                showToast((data && data.message) ? data.message : 'Could not add part', 'error');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            console.error('AJAX add-to-cart error:', err);
+            window.location.href = `cart.php?action=add&id=${productId}`;
+        }
+    });
+
+    // Form submit handlers (Product details page & related products)
+    document.addEventListener('submit', async (e) => {
+        const form = e.target;
+        if (!form) return;
+
+        const actionInput = form.querySelector('input[name="action"]');
+        if (!actionInput || actionInput.value !== 'add') return;
+
+        // Skip interception if user explicitly clicked "Buy Now"
+        if (e.submitter && e.submitter.getAttribute('name') === 'buy_now') return;
+
+        e.preventDefault();
+        const submitBtn = form.querySelector('button[type="submit"]') || (e.submitter && e.submitter.tagName === 'BUTTON' ? e.submitter : null);
+        let originalContent = '';
+        if (submitBtn) {
+            originalContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            if (submitBtn.classList.contains('btn-add-cart')) {
+                submitBtn.innerHTML = '<span>ADDING...</span>';
+            }
+        }
+
+        try {
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+            const targetUrl = form.getAttribute('action') || 'cart.php';
+
+            const res = await fetch(targetUrl, {
+                method: 'POST',
+                headers: { 
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data && data.success) {
+                updateNavCartCount(data.cart_count);
+                showToast('✓ ' + (data.message || 'Added to cart successfully!'), 'success');
+                if (submitBtn) {
+                    if (submitBtn.classList.contains('btn-add-cart')) {
+                        submitBtn.innerHTML = '<span>✓ ADDED TO CART!</span>';
+                        setTimeout(() => {
+                            submitBtn.innerHTML = originalContent;
+                            submitBtn.disabled = false;
+                        }, 1500);
+                    } else {
+                        submitBtn.disabled = false;
+                    }
+                }
+            } else {
+                showToast((data && data.message) ? data.message : 'Could not add part', 'error');
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalContent;
+                    submitBtn.disabled = false;
+                }
+            }
+        } catch (err) {
+            console.error('AJAX cart submit error:', err);
+            form.submit();
+        }
+    });
 });
+
+/**
+ * Global Cart Badge Synchronizer & Micro-Bounce Animation
+ */
+function updateNavCartCount(count) {
+    const numericCount = parseInt(count, 10) || 0;
+    const badges = document.querySelectorAll('#navCartBadge, .nav-cart-badge, .cart-badge');
+    badges.forEach(badge => {
+        badge.textContent = numericCount;
+        if (numericCount > 0) {
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+        badge.classList.remove('bump');
+        void badge.offsetWidth; // Force CSS reflow to re-trigger keyframe animation
+        badge.classList.add('bump');
+    });
+}
+window.updateNavCartCount = updateNavCartCount;
 
 /**
  * Toast Notification with Animated Progress Bar

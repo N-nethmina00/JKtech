@@ -46,8 +46,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       </a>
       <?php if (isAdmin()): ?>
         <a href="admin/index.php" class="top-admin-badge">★ Admin Console</a>
-      <?php else: ?>
-        <a href="admin/login.php" class="top-info-item top-link" style="color: #64748b; font-size: 11.5px; margin-left: 8px;" title="Administrator Console">Admin Login</a>
       <?php endif; ?>
     </div>
   </div>
@@ -102,7 +100,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           <circle cx="20" cy="21" r="1"></circle>
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
         </svg>
-        <span class="nav-cart-badge"><?= $cartCount > 0 ? $cartCount : 0 ?></span>
+        <span class="nav-cart-badge cart-badge" id="navCartBadge" style="<?= $cartCount > 0 ? '' : 'display:none;' ?>"><?= $cartCount ?></span>
       </a>
     </div>
   </div>

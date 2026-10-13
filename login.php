@@ -1,5 +1,5 @@
 <?php
-// login.php - Multi-Channel Authentication (Email/Mobile/Google/Facebook/OTP)
+// login.php - Professional Email & Password Authentication + Account Registration Portal
 require_once __DIR__ . '/includes/functions.php';
 
 // If already admin, redirect to admin console
@@ -9,17 +9,21 @@ if (isAdmin()) {
 }
 
 $error = '';
-$flash = getFlash();
+$errors = [];
+$activeTab = (isset($_GET['mode']) && $_GET['mode'] === 'register') ? 'register' : 'login';
+$prefillEmail = isset($_GET['email']) ? sanitize($_GET['email']) : '';
 
 // -------------------------------------------------------------
-// 1. Traditional Login (Email or Username + Password)
+// 1. Handle Sign In (Email + Password)
 // -------------------------------------------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'password_login') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'password_login') {
+    $activeTab = 'login';
     $loginInput = sanitize($_POST['login_input'] ?? '');
     $password = $_POST['password'] ?? '';
+    $prefillEmail = $loginInput;
 
     if (empty($loginInput) || empty($password)) {
-        $error = 'Please enter your email or username, and your password.';
+        $error = 'Please enter both your email address and password.';
     } else {
         $auth = authenticateUser($loginInput, $password);
         if ($auth['success']) {
@@ -39,320 +43,343 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // -------------------------------------------------------------
-// 2. Mobile Number & OTP Login (Matching User UI Reference)
+// 2. Handle Account Registration (Create Account with Email)
 // -------------------------------------------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'mobile_otp') {
-    $mobile = sanitize($_POST['mobile_number'] ?? '');
-    $countryCode = sanitize($_POST['country_code'] ?? '+94');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'register_account') {
+    $activeTab = 'register';
+    $name = sanitize($_POST['name'] ?? '');
+    $email = sanitize($_POST['email'] ?? '');
+    $phone = sanitize($_POST['phone'] ?? '');
+    $city = sanitize($_POST['city'] ?? 'Colombo');
+    $password = $_POST['password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    if (empty($mobile)) {
-        $error = 'Please enter your mobile phone number.';
-    } else {
-        // Normalize mobile number
-        $cleanPhone = preg_replace('/[^0-9]/', '', $mobile);
-        if (str_starts_with($cleanPhone, '0')) {
-            $fullPhone = $countryCode . ' ' . substr($cleanPhone, 1);
-        } elseif (str_starts_with($cleanPhone, '94')) {
-            $fullPhone = '+' . $cleanPhone;
-        } else {
-            $fullPhone = $countryCode . ' ' . $cleanPhone;
-        }
+    if (empty($name)) {
+        $errors[] = 'Please enter your full name.';
+    }
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Please enter a valid email address.';
+    }
+    if (empty($phone)) {
+        $errors[] = 'Please enter your contact phone number.';
+    }
+    if (empty($password) || strlen($password) < 6) {
+        $errors[] = 'Password must be at least 6 characters long.';
+    }
+    if ($password !== $confirmPassword) {
+        $errors[] = 'Passwords do not match. Please re-check.';
+    }
 
-        $user = findOrCreateMobileUser($fullPhone);
-        if ($user) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_role'] = $user['role'];
-
-            setFlash('success', "Welcome back, {$user['name']}!");
-            header('Location: index.php');
+    if (empty($errors)) {
+        $res = registerUser($name, $email, $password, $phone, $city, 'customer');
+        if ($res['success']) {
+            setFlash('success', "Account created successfully! Please sign in with your email and password.");
+            header('Location: login.php?email=' . urlencode($email));
             exit;
         } else {
-            $error = 'Failed to register or authenticate mobile number. Please try again.';
+            $errors[] = $res['error'];
         }
     }
 }
 
-// -------------------------------------------------------------
-// 3. Social One-Click Login (Google / Facebook)
-// -------------------------------------------------------------
-if (isset($_GET['provider'])) {
-    $provider = strtolower($_GET['provider']);
-    if ($provider === 'google') {
-        $user = findOrCreateSocialUser('google', 'google_client@jktech.lk', 'Google Client');
-        if ($user) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_role'] = $user['role'];
-            setFlash('success', "Successfully authenticated with Google account!");
-            header('Location: index.php');
-            exit;
-        }
-    } elseif ($provider === 'facebook') {
-        $user = findOrCreateSocialUser('facebook', 'fb_client@jktech.lk', 'Facebook Client');
-        if ($user) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_role'] = $user['role'];
-            setFlash('success', "Successfully authenticated with Facebook account!");
-            header('Location: index.php');
-            exit;
-        }
-    }
-}
+$flash = getFlash();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In &amp; Authentication | JKtech.LK</title>
+  <title>Sign In or Create Account | JKtech.LK</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    body {
-      background: #080c14;
+    .auth-page-section {
+      padding: 48px 16px 80px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
 
-    .auth-wrapper {
-      max-width: 440px;
-      margin: 50px auto 80px;
-      background: #0e1526;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    .auth-card {
+      width: 100%;
+      max-width: 480px;
+      background: #0c1322;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
       position: relative;
       overflow: hidden;
     }
 
-    .auth-header-top {
+    /* Top Accent Line */
+    .auth-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #00e5ff 0%, #ff4d2d 100%);
+    }
+
+    .auth-card-header {
+      padding: 32px 32px 20px;
+      text-align: center;
+    }
+
+    .auth-brand-emblem {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .auth-heading {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 900;
+      color: #ffffff;
+      margin: 0 0 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .auth-subheading {
+      font-size: 13.5px;
+      color: #94a3b8;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Mode Switcher Tabs (Sign In / Create Account) */
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #070b14;
+      padding: 5px;
+      border-radius: 12px;
+      margin: 0 32px 24px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .auth-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      padding: 10px 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .auth-tab-btn:hover {
+      color: #ffffff;
+    }
+
+    .auth-tab-btn.active {
+      background: #152036;
+      color: #00e5ff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+    }
+
+    .auth-card-body {
+      padding: 0 32px 34px;
+    }
+
+    /* Form Fields with Left Icon */
+    .auth-field {
+      margin-bottom: 18px;
+    }
+
+    .auth-label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+
+    .input-icon-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-left-icon {
+      position: absolute;
+      left: 14px;
+      color: #64748b;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s ease;
+    }
+
+    .auth-input {
+      width: 100%;
+      height: 46px;
+      background: #080d18;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 0 42px 0 42px;
+      color: #ffffff;
+      font-size: 14px;
+      font-family: var(--font-body);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .auth-input:focus {
+      border-color: #00e5ff;
+      background: #0a101f;
+      box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.12);
+    }
+
+    .input-icon-wrap:focus-within .input-left-icon {
+      color: #00e5ff;
+    }
+
+    .pwd-toggle-btn {
+      position: absolute;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+    }
+
+    .pwd-toggle-btn:hover {
+      color: #cbd5e1;
+    }
+
+    .auth-row-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .auth-meta-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 24px 28px 12px;
+      margin: -4px 0 20px;
+      font-size: 12.5px;
     }
 
-    .auth-close-btn {
-      color: #64748b;
-      font-size: 20px;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .auth-close-btn:hover {
-      color: #fff;
-    }
-
-    .auth-body {
-      padding: 0 28px 32px;
-    }
-
-    .auth-title {
-      font-family: var(--font-display);
-      font-size: 15px;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 16px;
-    }
-
-    /* Mobile Number & OTP Row */
-    .mobile-input-group {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
-    .country-select-wrap {
-      background: #151d30;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 0 10px;
-      display: flex;
+    .remember-label {
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      color: #e2e8f0;
-      font-size: 13.5px;
-      font-weight: 700;
-    }
-    .country-select-wrap select {
-      background: transparent;
-      border: none;
-      color: #fff;
-      font-size: 13.5px;
-      font-weight: 700;
+      gap: 7px;
+      color: #94a3b8;
       cursor: pointer;
-      outline: none;
-    }
-    .country-select-wrap select option {
-      background: #0e1526;
-      color: #fff;
+      user-select: none;
     }
 
-    .mobile-text-input {
-      flex: 1;
-      height: 44px;
-      background: #151d30;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 0 14px;
-      color: #ffffff;
-      font-size: 13.5px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .mobile-text-input:focus {
-      border-color: #00e5ff;
-      box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+    .remember-label input {
+      accent-color: #00e5ff;
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
     }
 
-    /* Mint/Sea-Green Continue Button (from reference UI) */
-    .btn-mobile-continue {
+    /* Primary Submit Button */
+    .btn-auth-submit {
       width: 100%;
-      height: 44px;
-      background: #62b69f;
+      height: 48px;
+      background: linear-gradient(90deg, #ff4d2d 0%, #f97316 100%);
       color: #ffffff;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-family: var(--font-display);
       font-size: 14px;
       font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .btn-mobile-continue:hover {
-      background: #50a68d;
-      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(255, 77, 45, 0.35);
+      transition: all 0.25s ease;
     }
 
-    /* OR Divider */
-    .auth-or-divider {
-      display: flex;
-      align-items: center;
-      text-align: center;
-      margin: 20px 0;
-      color: #64748b;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 1px;
-    }
-    .auth-or-divider::before,
-    .auth-or-divider::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .auth-or-divider span {
-      padding: 0 12px;
+    .btn-auth-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 26px rgba(255, 77, 45, 0.55);
     }
 
-    /* Social Action Buttons Stack */
-    .social-btn-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* Google Button */
-    .btn-social-google {
-      width: 100%;
-      box-sizing: border-box;
-      height: 44px;
-      background: #ffffff;
-      color: #374151;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-family: var(--font-display);
-      font-size: 13.5px;
-      font-weight: 800;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .btn-social-google:hover {
-      background: #f8fafc;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
-    }
-
-    /* Facebook Button */
-    .btn-social-facebook {
-      width: 100%;
-      box-sizing: border-box;
-      height: 44px;
-      background: #3b5998;
-      color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-family: var(--font-display);
-      font-size: 13.5px;
-      font-weight: 800;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .btn-social-facebook:hover {
-      background: #2d4373;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(59, 89, 152, 0.35);
-    }
-
-    /* Email Button */
-    .btn-social-email {
-      width: 100%;
-      box-sizing: border-box;
-      height: 44px;
-      background: #0d9468;
-      color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-family: var(--font-display);
-      font-size: 13.5px;
-      font-weight: 800;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .btn-social-email:hover {
-      background: #0b7c57;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(13, 148, 104, 0.35);
-    }
-
-    /* Email Form Expandable */
-    .email-password-box {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    /* Agreement Footer */
-    .auth-agreement-footer {
+    .auth-switch-footer {
       text-align: center;
       margin-top: 22px;
-      font-size: 12px;
-      color: #64748b;
-      line-height: 1.5;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 13px;
+      color: #94a3b8;
     }
-    .auth-agreement-footer a {
-      color: #38bdf8;
+
+    .auth-switch-link {
+      color: #00e5ff;
+      font-weight: 800;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 13px;
+      font-family: inherit;
+      padding: 0;
+      margin-left: 4px;
       text-decoration: none;
     }
-    .auth-agreement-footer a:hover {
+
+    .auth-switch-link:hover {
       text-decoration: underline;
+    }
+
+    /* Active Session Banner */
+    .active-session-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 540px) {
+      .auth-page-section {
+        padding: 24px 12px 50px;
+      }
+      .auth-card-header {
+        padding: 24px 20px 16px;
+      }
+      .auth-tabs {
+        margin: 0 20px 20px;
+      }
+      .auth-card-body {
+        padding: 0 20px 26px;
+      }
+      .auth-row-2col {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+      .auth-heading {
+        font-size: 21px;
+      }
     }
   </style>
 </head>
@@ -360,134 +387,317 @@ if (isset($_GET['provider'])) {
 
   <?php include __DIR__ . '/includes/navbar.php'; ?>
 
-  <div class="container">
-    <div class="auth-wrapper">
-      <!-- Top Close Button & Logo -->
-      <div class="auth-header-top">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <img src="assets/images/logo_circle.svg" alt="JKtech.LK" style="width: 28px; height: 28px; border-radius: 50%;">
-          <span style="font-family: var(--font-display); font-weight: 900; color: #fff; font-size: 15px;">JKtech.LK Sign In</span>
-        </div>
-        <a href="index.php" class="auth-close-btn" title="Close">&times;</a>
+  <div class="container auth-page-section">
+    <div class="auth-card">
+      <!-- Top Brand Header -->
+      <div class="auth-card-header">
+        <img src="assets/images/logo_circle.svg" alt="JKtech.LK" class="auth-brand-emblem">
+        <h1 class="auth-heading" id="authMainHeading">
+          <?= $activeTab === 'register' ? 'Create Your Account' : 'Sign In to Your Account' ?>
+        </h1>
+        <p class="auth-subheading" id="authSubHeading">
+          <?= $activeTab === 'register'
+              ? 'Register with your email to track orders and speed up checkout'
+              : 'Enter your registered email and password to continue' ?>
+        </p>
       </div>
 
-      <div class="auth-body">
+      <!-- Mode Switcher Tabs -->
+      <div class="auth-tabs">
+        <button type="button" id="tabBtnLogin" class="auth-tab-btn <?= $activeTab === 'login' ? 'active' : '' ?>" onclick="switchAuthTab('login')">
+          Sign In
+        </button>
+        <button type="button" id="tabBtnRegister" class="auth-tab-btn <?= $activeTab === 'register' ? 'active' : '' ?>" onclick="switchAuthTab('register')">
+          Create Account
+        </button>
+      </div>
+
+      <div class="auth-card-body">
+        <!-- Flash Notification -->
         <?php if ($flash): ?>
-          <div class="alert alert-<?= htmlspecialchars($flash['type']) ?>">
+          <div class="alert alert-<?= htmlspecialchars($flash['type']) ?>" style="margin-bottom: 18px;">
             <span><?= htmlspecialchars($flash['message']) ?></span>
           </div>
         <?php endif; ?>
 
+        <!-- Login Error -->
         <?php if ($error): ?>
-          <div class="alert alert-error">
+          <div class="alert alert-error" style="margin-bottom: 18px;">
             <span><?= htmlspecialchars($error) ?></span>
           </div>
         <?php endif; ?>
 
-        <?php if (isLoggedIn()): ?>
-          <div style="background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <!-- Registration Errors -->
+        <?php if (!empty($errors)): ?>
+          <div class="alert alert-error" style="margin-bottom: 18px;">
             <div>
-              <span style="color: #94a3b8;">Signed in as <strong><?= htmlspecialchars(currentUser()['name']) ?></strong></span>
+              <?php foreach ($errors as $err): ?>
+                <div>&bull; <?= htmlspecialchars($err) ?></div>
+              <?php endforeach; ?>
             </div>
-            <a href="logout.php" style="color: #ff0055; font-weight: 700; text-decoration: none;">Sign Out</a>
+          </div>
+        <?php endif; ?>
+
+        <!-- If Already Logged In -->
+        <?php if (isLoggedIn()): ?>
+          <div class="active-session-box">
+            <div>
+              <div style="color: #e2e8f0; font-weight: 700;"><?= htmlspecialchars(currentUser()['name']) ?></div>
+              <div style="color: #94a3b8; font-size: 11.5px;"><?= htmlspecialchars(currentUser()['email']) ?></div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <a href="profile.php" style="color: #00e5ff; font-weight: 700; font-size: 12.5px;">My Account</a>
+              <span style="color: #475569;">|</span>
+              <a href="logout.php" style="color: #ef4444; font-weight: 700; font-size: 12.5px;">Sign Out</a>
+            </div>
           </div>
         <?php endif; ?>
 
         <!-- ============================================================== -->
-        <!-- 1. CONTINUE WITH MOBILE NUMBER & OTP (Matching Reference UI)   -->
+        <!-- PANEL 1: SIGN IN WITH EMAIL & PASSWORD                         -->
         <!-- ============================================================== -->
-        <div class="auth-title">Continue with mobile number &amp; OTP</div>
-
-        <form method="POST" action="login.php">
-          <input type="hidden" name="action" value="mobile_otp">
-          
-          <div class="mobile-input-group">
-            <div class="country-select-wrap">
-              <select name="country_code">
-                <option value="+94" selected>+94 (Sri Lanka)</option>
-                <option value="+81">+81 (Japan)</option>
-                <option value="+1">+1 (USA/CAN)</option>
-                <option value="+44">+44 (UK)</option>
-              </select>
-            </div>
-            <input type="text" name="mobile_number" class="mobile-text-input" placeholder="Enter your mobile number" required>
-          </div>
-
-          <button type="submit" class="btn-mobile-continue">Continue</button>
-        </form>
-
-        <!-- OR Divider -->
-        <div class="auth-or-divider">
-          <span>OR</span>
-        </div>
-
-        <!-- ============================================================== -->
-        <!-- 2. SOCIAL & DIRECT AUTHENTICATION BUTTONS                      -->
-        <!-- ============================================================== -->
-        <div class="social-btn-stack">
-          <!-- Continue with Google -->
-          <a href="login.php?provider=google" class="btn-social-google">
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-            </svg>
-            <span>Continue with Google</span>
-          </a>
-
-          <!-- Continue with Facebook -->
-          <a href="login.php?provider=facebook" class="btn-social-facebook">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            <span>Continue with Facebook</span>
-          </a>
-
-          <!-- Continue with Email Button (Toggles Email Password Form) -->
-          <button type="button" class="btn-social-email" onclick="toggleEmailBox()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-            <span>Continue with Email</span>
-          </button>
-        </div>
-
-        <!-- ============================================================== -->
-        <!-- 3. EMAIL & PASSWORD FORM (TOGGLEABLE)                          -->
-        <!-- ============================================================== -->
-        <div id="emailPasswordBox" class="email-password-box" style="display: <?= !empty($error) ? 'block' : 'none' ?>;">
+        <div id="panelLogin" style="display: <?= $activeTab === 'login' ? 'block' : 'none' ?>;">
           <form method="POST" action="login.php">
             <input type="hidden" name="action" value="password_login">
 
-            <div class="form-group">
-              <label class="form-label" for="login_input">Email or Username</label>
-              <input type="text" name="login_input" id="login_input" class="form-control" placeholder="name@domain.com or admin@jktechmotors.com" value="<?= htmlspecialchars($_POST['login_input'] ?? '') ?>" autocomplete="username" required>
-            </div>
-
-            <div class="form-group">
-              <div class="flex justify-between items-center" style="margin-bottom: 6px;">
-                <label class="form-label" for="password" style="margin-bottom: 0;">Password</label>
-                <a href="register.php" style="font-size: 11px; color: var(--neon-cyan);">Create New Account</a>
+            <div class="auth-field">
+              <label class="auth-label" for="login_input">Email Address</label>
+              <div class="input-icon-wrap">
+                <span class="input-left-icon">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  name="login_input"
+                  id="login_input"
+                  class="auth-input"
+                  placeholder="name@example.com"
+                  value="<?= htmlspecialchars($prefillEmail) ?>"
+                  autocomplete="username"
+                  required
+                >
               </div>
-              <input type="password" name="password" id="password" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 14px;">Sign In with Password</button>
+            <div class="auth-field">
+              <label class="auth-label" for="login_password">Password</label>
+              <div class="input-icon-wrap">
+                <span class="input-left-icon">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  name="password"
+                  id="login_password"
+                  class="auth-input"
+                  placeholder="Enter your password"
+                  autocomplete="current-password"
+                  required
+                >
+                <button type="button" class="pwd-toggle-btn" onclick="togglePassword('login_password', this)" title="Show / Hide Password">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="auth-meta-row">
+              <label class="remember-label">
+                <input type="checkbox" name="remember" checked>
+                <span>Keep me signed in</span>
+              </label>
+              <button type="button" class="auth-switch-link" onclick="switchAuthTab('register')">Create new account?</button>
+            </div>
+
+            <button type="submit" class="btn-auth-submit">
+              <span>Sign In</span>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
           </form>
+
+          <div class="auth-switch-footer">
+            Don't have an account yet?
+            <button type="button" class="auth-switch-link" onclick="switchAuthTab('register')">Register with Email</button>
+          </div>
         </div>
 
-        <!-- Legal Disclaimer & Links (Matching User's Reference) -->
-        <div class="auth-agreement-footer">
-          <div>By signing up for an account you agree to our</div>
-          <div style="margin-top: 4px;">
-            <a href="#">Terms and Conditions</a> &nbsp;|&nbsp; <a href="#">Privacy Policy</a>
-          </div>
-          <div style="margin-top: 14px;">
-            Don't have an account? <a href="register.php" style="color: #00e5ff; font-weight: 800;">Register Workshop</a>
+        <!-- ============================================================== -->
+        <!-- PANEL 2: CREATE NEW ACCOUNT (REGISTER WITH EMAIL)              -->
+        <!-- ============================================================== -->
+        <div id="panelRegister" style="display: <?= $activeTab === 'register' ? 'block' : 'none' ?>;">
+          <form method="POST" action="login.php">
+            <input type="hidden" name="action" value="register_account">
+
+            <div class="auth-field">
+              <label class="auth-label" for="reg_name">Full Name</label>
+              <div class="input-icon-wrap">
+                <span class="input-left-icon">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  name="name"
+                  id="reg_name"
+                  class="auth-input"
+                  placeholder="e.g. Kasun Perera"
+                  value="<?= htmlspecialchars($_POST['name'] ?? '') ?>"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="auth-field">
+              <label class="auth-label" for="reg_email">Email Address</label>
+              <div class="input-icon-wrap">
+                <span class="input-left-icon">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                </span>
+                <input
+                  type="email"
+                  name="email"
+                  id="reg_email"
+                  class="auth-input"
+                  placeholder="name@example.com"
+                  value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                  autocomplete="email"
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="auth-row-2col">
+              <div class="auth-field">
+                <label class="auth-label" for="reg_phone">Mobile Number</label>
+                <div class="input-icon-wrap">
+                  <span class="input-left-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    name="phone"
+                    id="reg_phone"
+                    class="auth-input"
+                    style="padding-right: 14px;"
+                    placeholder="077 123 4567"
+                    value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>"
+                    required
+                  >
+                </div>
+              </div>
+
+              <div class="auth-field">
+                <label class="auth-label" for="reg_city">City / Town</label>
+                <div class="input-icon-wrap">
+                  <span class="input-left-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    name="city"
+                    id="reg_city"
+                    class="auth-input"
+                    style="padding-right: 14px;"
+                    placeholder="e.g. Colombo"
+                    value="<?= htmlspecialchars($_POST['city'] ?? '') ?>"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div class="auth-row-2col">
+              <div class="auth-field">
+                <label class="auth-label" for="reg_password">Password</label>
+                <div class="input-icon-wrap">
+                  <span class="input-left-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </span>
+                  <input
+                    type="password"
+                    name="password"
+                    id="reg_password"
+                    class="auth-input"
+                    placeholder="Min. 6 chars"
+                    autocomplete="new-password"
+                    required
+                  >
+                  <button type="button" class="pwd-toggle-btn" onclick="togglePassword('reg_password', this)" title="Show / Hide Password">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="auth-field">
+                <label class="auth-label" for="reg_confirm">Confirm Password</label>
+                <div class="input-icon-wrap">
+                  <span class="input-left-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </span>
+                  <input
+                    type="password"
+                    name="confirm_password"
+                    id="reg_confirm"
+                    class="auth-input"
+                    placeholder="Repeat password"
+                    autocomplete="new-password"
+                    required
+                  >
+                  <button type="button" class="pwd-toggle-btn" onclick="togglePassword('reg_confirm', this)" title="Show / Hide Password">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-auth-submit" style="margin-top: 6px;">
+              <span>Create Account</span>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+              </svg>
+            </button>
+          </form>
+
+          <div class="auth-switch-footer">
+            Already have an account?
+            <button type="button" class="auth-switch-link" onclick="switchAuthTab('login')">Sign In Here</button>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -495,13 +705,40 @@ if (isset($_GET['provider'])) {
   <?php include __DIR__ . '/includes/footer.php'; ?>
 
   <script>
-    function toggleEmailBox() {
-      const box = document.getElementById('emailPasswordBox');
-      if (box.style.display === 'none' || box.style.display === '') {
-        box.style.display = 'block';
-        box.scrollIntoView({ behavior: 'smooth' });
+    function switchAuthTab(mode) {
+      const loginPanel = document.getElementById('panelLogin');
+      const regPanel = document.getElementById('panelRegister');
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabReg = document.getElementById('tabBtnRegister');
+      const mainHeading = document.getElementById('authMainHeading');
+      const subHeading = document.getElementById('authSubHeading');
+
+      if (mode === 'register') {
+        loginPanel.style.display = 'none';
+        regPanel.style.display = 'block';
+        tabLogin.classList.remove('active');
+        tabReg.classList.add('active');
+        mainHeading.textContent = 'Create Your Account';
+        subHeading.textContent = 'Register with your email to track orders and speed up checkout';
       } else {
-        box.style.display = 'none';
+        regPanel.style.display = 'none';
+        loginPanel.style.display = 'block';
+        tabReg.classList.remove('active');
+        tabLogin.classList.add('active');
+        mainHeading.textContent = 'Sign In to Your Account';
+        subHeading.textContent = 'Enter your registered email and password to continue';
+      }
+    }
+
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.style.color = '#00e5ff';
+      } else {
+        input.type = 'password';
+        btn.style.color = '#64748b';
       }
     }
   </script>

@@ -18,6 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         header('Location: checkout.php');
         exit;
     }
+    $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
+           || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
+           || (isset($_POST['ajax']) && $_POST['ajax'] == '1');
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'cart_count' => getCartCount(),
+            'cart_subtotal' => formatCurrency(getCartSubtotal()),
+            'message' => "Added {$product['name']} to your cart."
+        ]);
+        exit;
+    }
     setFlash('success', "Added {$product['name']} to your cart.");
     header("Location: product-details.php?id={$product['id']}");
     exit;
@@ -84,42 +97,114 @@ $flash = getFlash();
       font-weight: 600;
     }
 
-    /* 2-Column Product Showcase Layout */
+    /* Centered Product Showcase Layout */
     .product-details-layout {
-      display: grid;
-      grid-template-columns: 1.05fr 0.95fr;
-      gap: 52px;
-      padding: 38px 0 60px;
-    }
-
-    /* Left Column: Image Box & Trust Badges */
-    .gallery-container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 32px 16px 56px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      align-items: center;
+      gap: 26px;
+    }
+
+    /* Top: Product Title & Badges Header Area */
+    .product-top-header {
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .product-badge-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .product-cat-pill {
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      color: #00e5ff;
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      padding: 4px 14px;
+      border-radius: var(--radius-pill);
+      text-transform: uppercase;
+    }
+    .product-brand-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 4px 14px;
+      border-radius: var(--radius-pill);
+      text-transform: uppercase;
+    }
+    .product-grade-pill {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #10b981;
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 4px 14px;
+      border-radius: var(--radius-pill);
+      text-transform: uppercase;
+    }
+    .product-main-title {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.25;
+      margin: 0;
+      letter-spacing: -0.4px;
+      text-align: center;
+      max-width: 800px;
+    }
+
+    /* Center: Image Gallery Area */
+    .gallery-container {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
     }
     .main-image-card {
+      width: 100%;
       background: #0b111e;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
+      border-radius: 16px;
       position: relative;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 440px;
-      padding: 30px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      max-height: 520px;
+      padding: 24px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
     }
     .main-image-card img {
       max-width: 100%;
-      max-height: 380px;
+      max-height: 420px;
       object-fit: contain;
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
       filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.6));
     }
     .main-image-card:hover img {
-      transform: scale(1.04);
+      transform: scale(1.03);
     }
 
     /* Grade Tag on Top Left of Image */
@@ -146,6 +231,9 @@ $flash = getFlash();
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 760px;
     }
     .thumb-strip-item {
       width: 78px;
@@ -160,6 +248,7 @@ $flash = getFlash();
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
+      flex-shrink: 0;
     }
     .thumb-strip-item.active,
     .thumb-strip-item:hover {
@@ -174,170 +263,78 @@ $flash = getFlash();
       border-radius: 4px;
     }
 
-    /* 3 Feature Trust Badges Below Image */
-    .feature-badges-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-    }
-    .feature-badge-box {
-      background: #0c1220;
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 10px;
-      padding: 14px 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .feature-badge-box:hover {
-      border-color: rgba(0, 229, 255, 0.3);
-      transform: translateY(-2px);
-    }
-    .feature-badge-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .feature-badge-icon.cyan {
-      background: rgba(0, 229, 255, 0.1);
-      color: #00e5ff;
-    }
-    .feature-badge-icon.orange {
-      background: rgba(255, 77, 45, 0.1);
-      color: #ff4d2d;
-    }
-    .feature-badge-info strong {
-      display: block;
-      color: #ffffff;
-      font-size: 12px;
-      font-weight: 800;
-      font-family: var(--font-display);
-      margin-bottom: 2px;
-    }
-    .feature-badge-info span {
-      display: block;
-      color: #64748b;
-      font-size: 10.5px;
-      line-height: 1.2;
-    }
-
-    /* Right Column: Part Details & Actions */
-    .part-details-col {
+    /* Bottom: Information Area */
+    .product-info-area {
+      width: 100%;
+      max-width: 760px;
       display: flex;
       flex-direction: column;
+      gap: 20px;
     }
-    .part-category-tag {
+
+    /* Clean, Professional Admin Product Description */
+    .product-desc-box {
+      background: #0c1220;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 22px 26px;
+      position: relative;
+    }
+    .product-desc-label {
       font-family: var(--font-display);
       font-size: 11px;
       font-weight: 800;
       color: #00e5ff;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       display: inline-block;
+      padding-bottom: 4px;
+      border-bottom: 2px solid rgba(0, 229, 255, 0.4);
     }
-    .product-main-title {
-      font-family: var(--font-display);
-      font-size: 28px;
-      font-weight: 900;
-      color: #ffffff;
-      line-height: 1.25;
-      margin: 0 0 10px 0;
-      letter-spacing: -0.3px;
-    }
-    .stock-status-line {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12.5px;
-      color: #10b981;
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-    .green-status-dot {
-      width: 7px;
-      height: 7px;
-      background: #10b981;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #10b981;
-      animation: pulseGlow 1.5s infinite;
-    }
-    .product-lead-desc {
-      color: #94a3b8;
-      font-size: 13.5px;
-      line-height: 1.65;
-      margin-bottom: 22px;
+    .product-desc-content {
+      color: #cbd5e1;
+      font-size: 14.5px;
+      line-height: 1.75;
+      letter-spacing: 0.15px;
+      white-space: pre-line;
+      word-break: break-word;
     }
 
-    /* Compatibility & Specs Card */
-    .specs-card {
-      background: #0c1220;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
-    }
-    .specs-card-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 9px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 13px;
-    }
-    .specs-card-row:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-    .specs-card-row:first-child {
-      padding-top: 0;
-    }
-    .specs-card-label {
-      color: #64748b;
-      font-weight: 600;
-    }
-    .specs-card-val {
-      color: #e2e8f0;
-      font-weight: 700;
-      text-align: right;
-    }
-    .specs-card-val.cyan {
-      color: #00e5ff;
-    }
-
-    /* Price Section */
+    /* Price Section (Directly under description matching user screenshot) */
     .price-container {
-      margin-bottom: 24px;
+      background: #0b111e;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px 24px;
+      text-align: center;
     }
     .price-label {
-      font-size: 12px;
-      color: #64748b;
-      margin-bottom: 4px;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-weight: 500;
     }
     .price-figure {
       font-family: var(--font-display);
-      font-size: 34px;
+      font-size: 38px;
       font-weight: 900;
       color: #ff4d2d;
-      line-height: 1;
+      line-height: 1.1;
       margin-bottom: 6px;
+      letter-spacing: -0.5px;
     }
     .price-note {
-      font-size: 11px;
+      font-size: 12px;
       color: #64748b;
+      line-height: 1.4;
     }
 
     /* Action Buttons Row */
     .actions-box {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 30px;
+      gap: 14px;
     }
     .actions-main-row {
       display: flex;
@@ -434,7 +431,7 @@ $flash = getFlash();
     /* WhatsApp Direct Contact Button (User's Key Feature) */
     .btn-whatsapp-inquiry {
       width: 100%;
-      height: 46px;
+      height: 48px;
       background: linear-gradient(90deg, #25D366 0%, #128C7E 100%);
       color: #ffffff;
       border-radius: 8px;
@@ -444,9 +441,9 @@ $flash = getFlash();
       justify-content: center;
       gap: 10px;
       font-family: var(--font-display);
-      font-size: 13.5px;
-      font-weight: 900;
-      letter-spacing: 0.4px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
       box-shadow: 0 4px 16px rgba(37, 211, 102, 0.35);
       transition: all 0.25s ease;
     }
@@ -454,61 +451,6 @@ $flash = getFlash();
       transform: translateY(-2px);
       box-shadow: 0 6px 22px rgba(37, 211, 102, 0.55);
       color: #ffffff;
-    }
-
-    /* Tabs (Description, Specifications, Reviews) */
-    .product-tabs-wrap {
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 20px;
-    }
-    .tab-nav-row {
-      display: flex;
-      gap: 24px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      margin-bottom: 18px;
-    }
-    .tab-trigger-btn {
-      background: transparent;
-      border: none;
-      color: #64748b;
-      font-family: var(--font-display);
-      font-size: 12.5px;
-      font-weight: 800;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      padding: 8px 0;
-      cursor: pointer;
-      position: relative;
-      transition: color 0.2s ease;
-    }
-    .tab-trigger-btn:hover {
-      color: #cbd5e1;
-    }
-    .tab-trigger-btn.active {
-      color: #00e5ff;
-    }
-    .tab-trigger-btn.active::after {
-      content: "";
-      position: absolute;
-      bottom: -1px;
-      left: 0;
-      width: 100%;
-      height: 2.5px;
-      background: #00e5ff;
-      box-shadow: 0 0 8px #00e5ff;
-    }
-    .tab-panel-body {
-      color: #94a3b8;
-      font-size: 13px;
-      line-height: 1.65;
-    }
-    .tab-specs-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .tab-specs-table tr {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     .tab-specs-table td {
       padding: 8px 0;
@@ -678,23 +620,110 @@ $flash = getFlash();
 
     /* Responsive Adjustments */
     @media (max-width: 992px) {
-      .product-details-layout {
-        grid-template-columns: 1fr;
-        gap: 36px;
-      }
       .related-grid {
         grid-template-columns: 1fr 1fr;
       }
     }
-    @media (max-width: 600px) {
-      .feature-badges-grid {
-        grid-template-columns: 1fr;
+    @media (max-width: 768px) {
+      .breadcrumbs {
+        flex-wrap: wrap;
+        font-size: 12px;
+      }
+      .product-details-layout {
+        padding: 24px 14px 44px;
+        gap: 20px;
+      }
+      .product-main-title {
+        font-size: 24px;
+        line-height: 1.3;
+      }
+      .main-image-card {
+        min-height: 300px;
+        max-height: 360px;
+        padding: 16px;
+        border-radius: 12px;
+      }
+      .main-image-card img {
+        max-height: 280px;
+      }
+      .gallery-nav-btn {
+        width: 36px;
+        height: 36px;
+      }
+      .gallery-nav-btn.prev-btn { left: 8px; }
+      .gallery-nav-btn.next-btn { right: 8px; }
+      .thumb-strip {
+        gap: 8px;
+      }
+      .thumb-strip-item {
+        width: 64px;
+        height: 52px;
+      }
+      .product-desc-box,
+      .price-container {
+        padding: 18px 20px;
+        border-radius: 12px;
+      }
+      .price-figure {
+        font-size: 32px;
+      }
+      .related-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+    }
+    @media (max-width: 540px) {
+      .product-main-title {
+        font-size: 21px;
+      }
+      .main-image-card {
+        min-height: 240px;
+        max-height: 300px;
+        padding: 12px;
+      }
+      .main-image-card img {
+        max-height: 220px;
+      }
+      .grade-badge-overlay {
+        top: 12px;
+        left: 12px;
+        font-size: 9.5px;
+        padding: 3px 10px;
+      }
+      .gallery-zoom-btn {
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
       }
       .actions-main-row {
         flex-wrap: wrap;
       }
+      .qty-stepper {
+        width: 100%;
+        justify-content: center;
+      }
+      .qty-stepper input {
+        width: 50px;
+      }
+      .btn-add-cart {
+        width: 100%;
+      }
+      .btn-view-cart {
+        width: 100%;
+      }
+      .btn-whatsapp-inquiry {
+        font-size: 13px;
+        padding: 0 10px;
+      }
       .related-grid {
         grid-template-columns: 1fr;
+      }
+      .lightbox-content .gallery-nav-btn.prev-btn {
+        left: 8px !important;
+      }
+      .lightbox-content .gallery-nav-btn.next-btn {
+        right: 8px !important;
       }
     }
   </style>
@@ -731,7 +760,20 @@ $flash = getFlash();
   <!-- Main Product Details Container -->
   <div class="container">
     <div class="product-details-layout">
-      <!-- Left Column: Gallery & Trust Badges -->
+
+      <!-- Top: Product Title & Badges Header Area -->
+      <div class="product-top-header">
+        <div class="product-badge-strip">
+          <span class="product-cat-pill"><?= htmlspecialchars($product['category_name'] ?? 'ENGINE PARTS') ?></span>
+          <?php if (!empty($product['brand_name'])): ?>
+            <span class="product-brand-pill"><?= htmlspecialchars($product['brand_name']) ?></span>
+          <?php endif; ?>
+          <span class="product-grade-pill"><?= htmlspecialchars($product['grade'] ?? 'GRADE A+ TESTED') ?></span>
+        </div>
+        <h1 class="product-main-title"><?= htmlspecialchars($product['name']) ?></h1>
+      </div>
+
+      <!-- Center: Image Gallery Area -->
       <div class="gallery-container">
         <!-- Main Image Card with Grade Overlay, Arrows, Zoom & Counter -->
         <div class="main-image-card" id="mainGalleryCard">
@@ -775,89 +817,19 @@ $flash = getFlash();
             <?php endforeach; ?>
           </div>
         <?php endif; ?>
-
-        <!-- 3 Feature Badges Row matching UI reference -->
-        <div class="feature-badges-grid">
-          <!-- 1. Japan Import -->
-          <div class="feature-badge-box">
-            <div class="feature-badge-icon cyan">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-                <line x1="4" y1="22" x2="4" y2="15"></line>
-              </svg>
-            </div>
-            <div class="feature-badge-info">
-              <strong>Japan Import</strong>
-              <span>Sourced directly</span>
-            </div>
-          </div>
-
-          <!-- 2. Quality Tested -->
-          <div class="feature-badge-box">
-            <div class="feature-badge-icon orange">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-              </svg>
-            </div>
-            <div class="feature-badge-info">
-              <strong>Quality Tested</strong>
-              <span>Yokohama Yard Graded</span>
-            </div>
-          </div>
-
-          <!-- 3. 6-Month Warranty -->
-          <div class="feature-badge-box">
-            <div class="feature-badge-icon cyan">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-              </svg>
-            </div>
-            <div class="feature-badge-info">
-              <strong>6-Month Warranty</strong>
-              <span>Against startup failures</span>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <!-- Right Column: Part Details, Compatibility, Pricing & WhatsApp Order -->
-      <div class="part-details-col">
-        <!-- Sub-category / Brand Tag -->
-        <span class="part-category-tag">
-          <?= htmlspecialchars(strtoupper($product['category_name'] ?? 'ENGINE PARTS')) ?> - <?= htmlspecialchars(strtoupper($product['brand_name'] ?? 'TOYOTA')) ?> <?= htmlspecialchars(strtoupper($product['model_compatibility'] ?? 'COROLLA')) ?>
-        </span>
-
-        <!-- Main Product Title -->
-        <h1 class="product-main-title"><?= htmlspecialchars($product['name']) ?></h1>
-
-        <!-- Stock Status with Glowing Green Dot -->
-        <div class="stock-status-line">
-          <span class="green-status-dot"></span>
-          <span>In Yokohama Stock (Ready for next Container)</span>
-        </div>
-
-        <!-- Lead Product Description -->
-        <p class="product-lead-desc">
-          <?= nl2br(htmlspecialchars($product['description'])) ?>
-        </p>
-
-        <!-- Key Compatibility & Specifications Card -->
-        <div class="specs-card">
-          <div class="specs-card-row">
-            <span class="specs-card-label">Compatible Models:</span>
-            <span class="specs-card-val"><?= htmlspecialchars($product['model_compatibility']) ?></span>
-          </div>
-          <div class="specs-card-row">
-            <span class="specs-card-label">Chassis Compatibility:</span>
-            <span class="specs-card-val cyan"><?= htmlspecialchars($product['sku']) ?> Series</span>
-          </div>
-          <div class="specs-card-row">
-            <span class="specs-card-label">Genuine Part Number:</span>
-            <span class="specs-card-val" style="font-family: var(--font-mono);"><?= htmlspecialchars($product['sku']) ?></span>
+      <!-- Bottom: Product Information & Action Area -->
+      <div class="product-info-area">
+        <!-- Admin Product Description -->
+        <div class="product-desc-box">
+          <div class="product-desc-label">DESCRIPTION</div>
+          <div class="product-desc-content">
+            <?= !empty(trim($product['description'] ?? '')) ? nl2br(htmlspecialchars(trim($product['description']))) : 'Genuine Japanese reconditioned auto part. Directly sourced from Kanagawa yard, inspected and ready for installation.' ?>
           </div>
         </div>
 
-        <!-- Price Section -->
+        <!-- Price Section (Directly under description as requested) -->
         <div class="price-container">
           <div class="price-label">Estimated Price Delivered to Sri Lanka:</div>
           <div class="price-figure">Rs. <?= number_format($product['price'], 0) ?></div>
@@ -865,8 +837,9 @@ $flash = getFlash();
         </div>
 
         <!-- Purchase & WhatsApp Action Area -->
-        <form method="POST" action="product-details.php?id=<?= $product['id'] ?>" class="actions-box">
+        <form method="POST" action="product-details.php?id=<?= $product['id'] ?>" class="actions-box" id="productAddToCartForm">
           <input type="hidden" name="action" value="add">
+          <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
           
           <div class="actions-main-row">
             <!-- Quantity Stepper -->
@@ -897,79 +870,6 @@ $flash = getFlash();
             <span>Inquire on WhatsApp (+94 77 837 6481)</span>
           </a>
         </form>
-
-        <!-- Tabbed Information Section -->
-        <div class="product-tabs-wrap">
-          <div class="tab-nav-row">
-            <button type="button" class="tab-trigger-btn active" onclick="switchTab('desc', this)">DESCRIPTION</button>
-            <button type="button" class="tab-trigger-btn" onclick="switchTab('specs', this)">SPECIFICATIONS</button>
-            <button type="button" class="tab-trigger-btn" onclick="switchTab('reviews', this)">REVIEWS (24)</button>
-          </div>
-
-          <!-- Tab Pane: Description -->
-          <div id="pane-desc" class="tab-panel-body">
-            <p style="margin-bottom: 12px;">
-              This <?= htmlspecialchars($product['name']) ?> is meticulously dismantled from low-mileage Japanese donor vehicles. Tested in Yokohama by authorized mechanics. Compression grades exceed 12 bars on all cylinders. Wire harness connectors are un-cut for easy, plug-and-play mounting. Fits automatic and manual transaxles natively.
-            </p>
-            <p>
-              Includes full Japanese auction deregistration certification and Colombo customs clearance documentation. Bench-tested to ensure zero sludge deposits and smooth oil delivery.
-            </p>
-          </div>
-
-          <!-- Tab Pane: Specifications -->
-          <div id="pane-specs" class="tab-panel-body" style="display: none;">
-            <table class="tab-specs-table">
-              <tr>
-                <td>Cylinder Compression:</td>
-                <td style="color:#00e5ff; font-weight:700;">12.8 bar (Cylinders 1-4 balanced)</td>
-              </tr>
-              <tr>
-                <td>Verified Japanese Mileage:</td>
-                <td style="color:#ffffff; font-family:var(--font-mono);"><?= htmlspecialchars($product['mileage'] ?? '38,000 km') ?></td>
-              </tr>
-              <tr>
-                <td>Chassis Compatibility:</td>
-                <td style="color:#ffffff;"><?= htmlspecialchars($product['model_compatibility']) ?></td>
-              </tr>
-              <tr>
-                <td>Genuine Part SKU:</td>
-                <td style="color:#ffffff; font-family:var(--font-mono);"><?= htmlspecialchars($product['sku']) ?></td>
-              </tr>
-              <tr>
-                <td>Testing Protocol:</td>
-                <td style="color:#10b981; font-weight:700;">✓ Dry/Wet Compression, Oil Pressure &amp; Leakdown Tested</td>
-              </tr>
-              <tr>
-                <td>Import Documentation:</td>
-                <td>JEVIC Certified Export Certificate Included</td>
-              </tr>
-            </table>
-          </div>
-
-          <!-- Tab Pane: Reviews -->
-          <div id="pane-reviews" class="tab-panel-body" style="display: none;">
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-              <div style="background: #0c1220; padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                  <strong style="color:#fff; font-size:12.5px;">Sampath Auto Engineering (Kandy)</strong>
-                  <span style="color:#f59e0b;">★★★★★</span>
-                </div>
-                <p style="font-size:12px; color:#94a3b8; margin:0;">
-                  "Ordered this for an Axio customer. Compression was dead-on 12.8 bar across all cylinders. Zero valve train sludge. Fired up on first turn!"
-                </p>
-              </div>
-              <div style="background: #0c1220; padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                  <strong style="color:#fff; font-size:12.5px;">Niroshan Ranasinghe (Colombo)</strong>
-                  <span style="color:#f59e0b;">★★★★★</span>
-                </div>
-                <p style="font-size:12px; color:#94a3b8; margin:0;">
-                  "Genuine Grade A condition with un-cut harness and original sensors intact. Delivery took less than 24 hours to Colombo depot."
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1123,14 +1023,6 @@ $flash = getFlash();
       const max = parseInt(input.getAttribute('max')) || 99;
       if (current > max) current = max;
       input.value = current;
-    }
-
-    function switchTab(tabId, el) {
-      document.querySelectorAll('.tab-trigger-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel-body').forEach(p => p.style.display = 'none');
-      el.classList.add('active');
-      const activePane = document.getElementById('pane-' + tabId);
-      if (activePane) activePane.style.display = 'block';
     }
   </script>
 </body>

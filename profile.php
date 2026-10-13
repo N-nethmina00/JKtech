@@ -47,11 +47,21 @@ $flash = getFlash();
   <style>
     .profile-card {
       max-width: 650px;
-      margin: 40px auto 80px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
+      margin: 48px auto 80px;
+      background: #0c1322;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 18px;
       padding: 36px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    }
+    @media (max-width: 540px) {
+      .profile-card {
+        padding: 24px 18px;
+        margin: 24px auto 50px;
+      }
+      .profile-card .grid {
+        grid-template-columns: 1fr !important;
+      }
     }
   </style>
 </head>
@@ -61,10 +71,10 @@ $flash = getFlash();
 
   <div class="container">
     <div class="profile-card">
-      <div class="flex justify-between items-center" style="margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+      <div class="flex justify-between items-center" style="margin-bottom: 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 16px; flex-wrap: wrap; gap: 12px;">
         <div>
-          <h1 style="font-size: 22px; font-weight: 800; color: #fff;">MY ACCOUNT</h1>
-          <p style="font-size: 13px; color: var(--text-muted);">Manage your workshop address and dispatch info</p>
+          <h1 style="font-family: var(--font-display); font-size: 22px; font-weight: 900; color: #fff;">MY ACCOUNT</h1>
+          <p style="font-size: 13px; color: var(--text-muted);">Manage your profile and delivery details</p>
         </div>
         <a href="orders.php" class="btn btn-outline btn-sm">View My Orders &rarr;</a>
       </div>

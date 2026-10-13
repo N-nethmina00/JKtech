@@ -483,11 +483,6 @@ $flash = getFlash();
         </div>
         
         <div class="flex items-center gap-3">
-          <!-- Database Live Health Indicator -->
-          <div class="db-status-bar <?= $dbStatus['driver'] === 'sqlite' ? 'sqlite' : '' ?>" title="<?= htmlspecialchars($dbStatus['detail']) ?>">
-            <span><?= htmlspecialchars($dbStatus['badge']) ?></span>
-          </div>
-
           <!-- Add Product Button (Opens Modal) -->
           <button type="button" class="btn btn-primary" onclick="openAddModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 4px;">

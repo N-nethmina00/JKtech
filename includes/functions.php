@@ -194,7 +194,7 @@ function getFallbackProducts() {
             'year_to' => 2016,
             'grade' => 'Grade A+',
             'mileage' => '48,200 km',
-            'compression' => '12.8 bar across all cylinders',
+            'compression' => 'Tested',
             'price' => 185000.00,
             'stock_quantity' => 4,
             'image_url' => 'engine_1.svg',
@@ -681,11 +681,16 @@ function registerUser($name, $email, $password, $phone = '', $city = 'Colombo', 
     }
 
     try {
-        // Check duplicate email
-        $chk = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $email = strtolower(trim($email));
+        $name = trim($name);
+        $phone = trim($phone);
+        $city = trim($city) ?: 'Colombo';
+
+        // Check duplicate email (case-insensitive)
+        $chk = $pdo->prepare("SELECT id FROM users WHERE LOWER(email) = ?");
         $chk->execute([$email]);
         if ($chk->fetch()) {
-            return ['success' => false, 'error' => "An account with the email '{$email}' already exists. Please sign in."];
+            return ['success' => false, 'error' => "An account with the email '{$email}' is already registered. Please sign in."];
         }
 
         // Check duplicate phone if provided
@@ -693,7 +698,7 @@ function registerUser($name, $email, $password, $phone = '', $city = 'Colombo', 
             $pchk = $pdo->prepare("SELECT id FROM users WHERE phone = ?");
             $pchk->execute([$phone]);
             if ($pchk->fetch()) {
-                return ['success' => false, 'error' => "An account with phone '{$phone}' already exists. Please sign in."];
+                return ['success' => false, 'error' => "An account with phone number '{$phone}' is already registered. Please sign in."];
             }
         }
 
@@ -708,7 +713,7 @@ function registerUser($name, $email, $password, $phone = '', $city = 'Colombo', 
 
         return ['success' => true, 'user_id' => $newId, 'user' => $user];
     } catch (Exception $e) {
-        return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
+        return ['success' => false, 'error' => 'Registration error: ' . $e->getMessage()];
     }
 }
 
@@ -729,7 +734,7 @@ function authenticateUser($loginInput, $password) {
         if ($loginLower === 'customer@gmail.com' && $password === 'customer123') {
             return ['success' => true, 'user' => ['id' => 2, 'name' => 'Kasun Perera', 'email' => 'customer@gmail.com', 'role' => 'customer']];
         }
-        return ['success' => false, 'error' => 'Database connection unavailable and invalid demo credentials.'];
+        return ['success' => false, 'error' => 'Database connection unavailable and invalid credentials.'];
     }
 
     try {
@@ -748,7 +753,7 @@ function authenticateUser($loginInput, $password) {
             return ['success' => true, 'user' => $newAdmin];
         }
 
-        // 2. Standard Case-Insensitive Check
+        // 2. Standard Case-Insensitive Email or Phone Check
         $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ? OR phone = ?");
         $stmt->execute([$loginLower, $loginInput]);
         $user = $stmt->fetch();
@@ -759,7 +764,7 @@ function authenticateUser($loginInput, $password) {
                 return ['success' => true, 'user' => $user];
             }
         }
-        return ['success' => false, 'error' => 'Invalid email/mobile number or password.'];
+        return ['success' => false, 'error' => 'Invalid email address or password. Please check your credentials and try again.'];
     } catch (Exception $e) {
         return ['success' => false, 'error' => 'Authentication error: ' . $e->getMessage()];
     }

@@ -218,20 +218,9 @@ $flash = getFlash();
     </aside>
 
     <main class="admin-main">
-      <div class="flex justify-between items-center" style="margin-bottom: 32px;">
-        <div>
-          <h1 style="font-family: var(--font-display); font-size: 28px; font-weight: 900; color: #fff;">OPERATIONS DASHBOARD</h1>
-          <p style="font-size: 14px; color: var(--text-muted);">Real-time telemetry for Japanese arrivals, stock levels &amp; garage fulfillments</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <div style="display:inline-flex; align-items:center; gap:6px; font-size:11px; font-family:var(--font-mono); font-weight:700; color:var(--neon-cyan); background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); padding:6px 12px; border-radius:var(--radius-pill);">
-            <span><?= htmlspecialchars($dbStatus['badge']) ?></span>
-          </div>
-          <span class="badge-pill-live">
-            <span class="pulse-dot"></span>
-            <span>Yokohama Telemetry Live</span>
-          </span>
-        </div>
+      <div style="margin-bottom: 32px;">
+        <h1 style="font-family: var(--font-display); font-size: 28px; font-weight: 900; color: #fff; margin: 0 0 6px 0;">OPERATIONS DASHBOARD</h1>
+        <p style="font-size: 14px; color: var(--text-muted); margin: 0;">Real-time telemetry for Japanese arrivals, stock levels &amp; garage fulfillments</p>
       </div>
 
       <?php if ($flash): ?>

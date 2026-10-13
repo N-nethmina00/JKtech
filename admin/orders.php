@@ -213,10 +213,6 @@ $flash = getFlash();
           <p style="font-size: 13px; color: var(--text-muted);">Process, track status, and manage imported engines &amp; spares orders</p>
         </div>
         <div class="flex items-center gap-3">
-          <div style="display:inline-flex; align-items:center; gap:6px; font-size:11px; font-family:var(--font-mono); font-weight:700; color:var(--neon-cyan); background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); padding:6px 12px; border-radius:var(--radius-pill);">
-            <span><?= htmlspecialchars($dbStatus['badge']) ?></span>
-          </div>
-
           <select id="adminOrderStatusFilter" class="form-control" style="width: 180px;">
             <option value="">All Order Statuses</option>
             <option value="Pending" <?= $statusFilter === 'Pending' ? 'selected' : '' ?>>Pending</option>
