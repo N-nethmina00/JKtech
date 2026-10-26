@@ -278,10 +278,6 @@ $flash = getFlash();
                   <strong style="color: #fff; font-size: 14px; font-family: var(--font-display); display: flex; align-items: center; gap: 8px;">
                     Credit / Debit Card (Online Payment)
                   </strong>
-                  <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 2px 9px; border-radius: 12px; font-size: 10.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px;">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    256-Bit SSL Encrypted
-                  </span>
                 </div>
                 <span style="font-size: 12.5px; color: var(--text-muted); display: block; margin-top: 5px; line-height: 1.5;">
                   Instant, secure online card payment. Supports all major Sri Lankan &amp; international cards. You will be prompted to authenticate your payment in a secure encrypted window.

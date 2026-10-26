@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stock = (int)($_POST['stock_quantity'] ?? 1);
         $fitment = trim(sanitize($_POST['model_compatibility'] ?? 'General JDM Fitment'));
         $grade = trim(sanitize($_POST['grade'] ?? 'Grade A'));
-        $desc = trim(sanitize($_POST['description'] ?? ''));
+        $desc = trim($_POST['description'] ?? '');
 
         // Handle Uploaded Files
         $uploadedPhotos = [];
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stock = (int)($_POST['stock_quantity'] ?? 1);
         $fitment = trim(sanitize($_POST['model_compatibility'] ?? ''));
         $grade = trim(sanitize($_POST['grade'] ?? 'Grade A'));
-        $desc = trim(sanitize($_POST['description'] ?? ''));
+        $desc = trim($_POST['description'] ?? '');
 
         // Handle newly uploaded additional photos
         $uploadedPhotos = [];

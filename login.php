@@ -53,6 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
                     $_SESSION['login_email_alert'] = $emailRes;
                 }
             }
+            $_SESSION['user_avatar'] = $user['avatar_url'] ?? '';
+
+            if (function_exists('sendLoginNotificationEmail') && !empty($user['email'])) {
+                $emailRes = sendLoginNotificationEmail($user['email'], $user['name'], 'Email & Password');
+                if ($emailRes) {
+                    $_SESSION['login_email_alert'] = $emailRes;
+                }
+            }
 
             setFlash('success', "Welcome back, {$user['name']}!");
             $targetUrl = ($user['role'] === 'admin') ? 'admin/index.php' : (!empty($redirect) ? $redirect : 'index.php');
@@ -60,43 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
             exit;
         } else {
             $error = $auth['error'];
-        }
-    }
-}
-
-// -------------------------------------------------------------
-// 1.5 Handle Google One-Click / Social Sign In
-// -------------------------------------------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'google_login') {
-    $activeTab = 'login';
-    $gEmail = sanitize($_POST['google_email'] ?? '');
-    $gName = sanitize($_POST['google_name'] ?? '');
-    $gAvatar = trim($_POST['google_avatar'] ?? '');
-
-    if (empty($gEmail) || !filter_var($gEmail, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Invalid Google account email address.';
-    } else {
-        $user = findOrCreateSocialUser('google', $gEmail, $gName, $gAvatar);
-        if ($user) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_email'] = $user['email'];
-            $_SESSION['user_role'] = $user['role'];
-            $_SESSION['user_avatar'] = $user['avatar_url'] ?? '';
-
-            if (function_exists('sendLoginNotificationEmail') && !empty($user['email'])) {
-                $emailRes = sendLoginNotificationEmail($user['email'], $user['name'], 'Google One-Click');
-                if ($emailRes) {
-                    $_SESSION['login_email_alert'] = $emailRes;
-                }
-            }
-
-            setFlash('success', "Signed in successfully with Google as {$user['name']}!");
-            $targetUrl = ($user['role'] === 'admin') ? 'admin/index.php' : (!empty($redirect) ? $redirect : 'index.php');
-            header("Location: {$targetUrl}");
-            exit;
-        } else {
-            $error = 'Failed to authenticate with Google. Please try again.';
         }
     }
 }
@@ -914,62 +885,6 @@ $flash = getFlash();
           </div>
         </div>
 
-      </div>
-    </div>
-  </div>
-
-  <!-- Hidden Form for Google Login Dispatch -->
-  <form id="googleLoginForm" method="POST" action="login.php" style="display:none;">
-    <input type="hidden" name="action" value="google_login">
-    <input type="hidden" name="google_email" id="gFormEmail" value="">
-    <input type="hidden" name="google_name" id="gFormName" value="">
-    <input type="hidden" name="google_avatar" id="gFormAvatar" value="">
-    <?php if (!empty($redirect)): ?>
-      <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
-    <?php endif; ?>
-  </form>
-
-  <!-- Google Account Chooser Modal -->
-  <div class="google-modal" id="googleModal" onclick="if(event.target===this) closeGoogleChooser()">
-    <div class="google-dialog">
-      <div class="google-dialog-header">
-        <svg width="28" height="28" viewBox="0 0 48 48" style="margin: 0 auto 10px; display: block;">
-          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        </svg>
-        <h3 style="font-family: var(--font-display); font-size: 17px; font-weight: 800; color: #fff; margin: 0 0 4px;">Choose a Google Account</h3>
-        <p style="font-size: 12.5px; color: #94a3b8; margin: 0;">to continue to JKtech.LK</p>
-      </div>
-      <div class="google-dialog-body">
-        <!-- Preset Demo Accounts -->
-        <div class="google-account-item" onclick="submitGoogleLogin('kasun.perera@gmail.com', 'Kasun Perera', '')">
-          <div class="google-acc-avatar" style="background:#ea4335;">K</div>
-          <div style="overflow:hidden; flex:1;">
-            <div style="font-weight:700; font-size:13.5px; color:#fff;">Kasun Perera</div>
-            <div style="font-size:12px; color:#94a3b8;">kasun.perera@gmail.com</div>
-          </div>
-        </div>
-
-        <div class="google-account-item" onclick="submitGoogleLogin('jktech.customer@gmail.com', 'Auto Garage LK', '')">
-          <div class="google-acc-avatar" style="background:#10b981;">A</div>
-          <div style="overflow:hidden; flex:1;">
-            <div style="font-weight:700; font-size:13.5px; color:#fff;">Auto Garage LK</div>
-            <div style="font-size:12px; color:#94a3b8;">jktech.customer@gmail.com</div>
-          </div>
-        </div>
-
-        <!-- Custom Real Email Box -->
-        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08);">
-          <label style="display:block; font-size:12px; font-weight:700; color:#cbd5e1; margin-bottom:6px;">Or use your real Google / Gmail address:</label>
-          <div style="display:flex; gap:8px;">
-            <input type="email" id="customGoogleEmail" class="auth-input" placeholder="youremail@gmail.com" style="height:42px; font-size:13px; padding: 0 12px;">
-            <button type="button" class="btn btn-primary btn-sm" onclick="submitCustomGoogle()" style="flex-shrink:0; height:42px; padding: 0 16px;">Sign In</button>
-          </div>
-        </div>
-
-        <button type="button" onclick="closeGoogleChooser()" style="width:100%; margin-top:16px; background:transparent; border:none; color:#64748b; font-size:13px; cursor:pointer;">Cancel</button>
       </div>
     </div>
   </div>
