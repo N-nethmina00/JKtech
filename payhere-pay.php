@@ -86,7 +86,7 @@ $hash = generatePayHereHash($merchantId, $orderId, $amount, $currency, $merchant
     }
 
     .checkout-flow-wrap {
-      max-width: 960px;
+      max-width: 580px;
       margin: 36px auto 90px;
       padding: 0 16px;
     }
@@ -180,15 +180,11 @@ $hash = generatePayHereHash($merchantId, $orderId, $amount, $currency, $merchant
     }
 
     .terminal-body {
-      padding: 34px 32px;
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 36px;
+      padding: 28px 28px 32px;
     }
 
     @media (max-width: 768px) {
       .terminal-body {
-        grid-template-columns: 1fr;
         padding: 22px 18px;
       }
       .terminal-header {
@@ -475,116 +471,6 @@ $hash = generatePayHereHash($merchantId, $orderId, $amount, $currency, $merchant
       </div>
 
       <div class="terminal-body">
-        <!-- Left Column: Card Authorization -->
-        <div>
-          <div class="section-headline">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-              <line x1="1" y1="10" x2="23" y2="10"></line>
-            </svg>
-            <span>Payment Authorization</span>
-          </div>
-
-          <!-- Virtual Metallic Card Representation -->
-          <div class="virtual-card-visual">
-            <div class="card-top-row">
-              <div class="chip-graphic"></div>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <span style="background: rgba(255, 255, 255, 0.15); border-radius: 4px; padding: 2px 7px; font-size: 9.5px; font-weight: 800; color: #fff; letter-spacing: 0.5px;">VISA</span>
-                <span style="background: rgba(255, 255, 255, 0.15); border-radius: 4px; padding: 2px 7px; font-size: 9.5px; font-weight: 800; color: #fff; letter-spacing: 0.5px;">MASTERCARD</span>
-                <span style="background: rgba(255, 255, 255, 0.15); border-radius: 4px; padding: 2px 7px; font-size: 9.5px; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px;">AMEX</span>
-              </div>
-            </div>
-
-            <div class="card-num-preview">
-              •••• &nbsp; •••• &nbsp; •••• &nbsp; <?= sprintf('%04d', $orderId) ?>
-            </div>
-
-            <div class="card-meta-row">
-              <div>
-                <div class="card-holder-label">Order Account Holder</div>
-                <div class="card-holder-name"><?= htmlspecialchars($order['customer_name']) ?></div>
-              </div>
-              <div style="text-align: right;">
-                <div class="card-holder-label">Amount Payable</div>
-                <div style="font-family: var(--font-display); font-size: 15px; font-weight: 800; color: #00e5ff;">
-                  <?= formatCurrency($order['total_amount']) ?>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <p style="color: #94a3b8; font-size: 13.5px; line-height: 1.6; margin-bottom: 22px;">
-            Click below to open the secure payment verification dialog. You can authenticate your payment using any valid Visa, Mastercard, or American Express card.
-          </p>
-
-          <!-- Primary Trigger Button -->
-          <button type="button" class="btn-pay-now" id="payButton" onclick="triggerPaymentModal()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <span>Complete Secure Card Payment</span>
-          </button>
-
-          <!-- Standard Fallback Form (Hidden / Optional) -->
-          <form method="POST" action="<?= htmlspecialchars($payhereConfig['checkout_url']) ?>" id="securePayFallbackForm" style="display: none;">
-            <input type="hidden" name="merchant_id" value="<?= htmlspecialchars($merchantId) ?>">
-            <input type="hidden" name="return_url" value="<?= htmlspecialchars($payhereConfig['return_url'] . '?order_id=' . $orderId) ?>">
-            <input type="hidden" name="cancel_url" value="<?= htmlspecialchars($payhereConfig['cancel_url'] . '&order_id=' . $orderId) ?>">
-            <input type="hidden" name="notify_url" value="<?= htmlspecialchars($payhereConfig['notify_url']) ?>">
-            <input type="hidden" name="order_id" value="<?= htmlspecialchars($orderId) ?>">
-            <input type="hidden" name="items" value="<?= htmlspecialchars($itemsSummary) ?>">
-            <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
-            <input type="hidden" name="amount" value="<?= htmlspecialchars($amount) ?>">
-            <input type="hidden" name="first_name" value="<?= htmlspecialchars($firstName) ?>">
-            <input type="hidden" name="last_name" value="<?= htmlspecialchars($lastName) ?>">
-            <input type="hidden" name="email" value="<?= htmlspecialchars($order['customer_email']) ?>">
-            <input type="hidden" name="phone" value="<?= htmlspecialchars($order['customer_phone']) ?>">
-            <input type="hidden" name="address" value="<?= htmlspecialchars($order['delivery_address']) ?>">
-            <input type="hidden" name="city" value="<?= htmlspecialchars($order['city']) ?>">
-            <input type="hidden" name="country" value="Sri Lanka">
-            <input type="hidden" name="hash" value="<?= htmlspecialchars($hash) ?>">
-          </form>
-
-          <div style="text-align: center; margin-top: 14px;">
-            <button type="button" onclick="document.getElementById('securePayFallbackForm').submit()" style="background: none; border: none; color: #64748b; font-size: 12px; cursor: pointer; text-decoration: underline;">
-              Having trouble with the popup? Use standard hosted checkout &rarr;
-            </button>
-          </div>
-
-          <!-- Trust Badges -->
-          <div class="trust-badges-grid">
-            <div class="trust-item">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Bank-Grade 3D Secure OTP</span>
-            </div>
-            <div class="trust-item">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>PCI-DSS Level 1 Compliant</span>
-            </div>
-            <div class="trust-item">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Instant WhatsApp Confirmation</span>
-            </div>
-            <div class="trust-item">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Zero Surcharge on Local Cards</span>
-            </div>
-          </div>
-
-          <!-- Discrete Testing Reference (Collapsed by Default) -->
-          <details class="dev-drawer">
-            <summary>Developer Testing Reference (Click to expand)</summary>
-            <div class="dev-drawer-content">
-              <div>• Visa Card: <code>4916 2175 0161 1292</code></div>
-              <div>• Mastercard: <code>5307 7321 2553 1191</code></div>
-              <div>• Expiry: <code>12/28</code> (or any future date) &nbsp;|&nbsp; CVV: <code>123</code></div>
-            </div>
-          </details>
-        </div>
-
-        <!-- Right Column: Order Summary -->
         <div>
           <div class="section-headline">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -631,6 +517,41 @@ $hash = generatePayHereHash($merchantId, $orderId, $amount, $currency, $merchant
               </div>
               <div>📞 <?= htmlspecialchars($order['customer_phone']) ?></div>
               <div>📍 <?= htmlspecialchars($order['delivery_address']) ?>, <?= htmlspecialchars($order['city']) ?></div>
+            </div>
+
+            <!-- Primary Trigger Button: Process Payment -->
+            <button type="button" class="btn-pay-now" id="payButton" onclick="triggerPaymentModal()" style="margin-top: 22px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Process Payment</span>
+            </button>
+
+            <!-- Standard Fallback Form (Hidden / Optional) -->
+            <form method="POST" action="<?= htmlspecialchars($payhereConfig['checkout_url']) ?>" id="securePayFallbackForm" style="display: none;">
+              <input type="hidden" name="merchant_id" value="<?= htmlspecialchars($merchantId) ?>">
+              <input type="hidden" name="return_url" value="<?= htmlspecialchars($payhereConfig['return_url'] . '?order_id=' . $orderId) ?>">
+              <input type="hidden" name="cancel_url" value="<?= htmlspecialchars($payhereConfig['cancel_url'] . '&order_id=' . $orderId) ?>">
+              <input type="hidden" name="notify_url" value="<?= htmlspecialchars($payhereConfig['notify_url']) ?>">
+              <input type="hidden" name="order_id" value="<?= htmlspecialchars($orderId) ?>">
+              <input type="hidden" name="items" value="<?= htmlspecialchars($itemsSummary) ?>">
+              <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
+              <input type="hidden" name="amount" value="<?= htmlspecialchars($amount) ?>">
+              <input type="hidden" name="first_name" value="<?= htmlspecialchars($firstName) ?>">
+              <input type="hidden" name="last_name" value="<?= htmlspecialchars($lastName) ?>">
+              <input type="hidden" name="email" value="<?= htmlspecialchars($order['customer_email']) ?>">
+              <input type="hidden" name="phone" value="<?= htmlspecialchars($order['customer_phone']) ?>">
+              <input type="hidden" name="address" value="<?= htmlspecialchars($order['delivery_address']) ?>">
+              <input type="hidden" name="city" value="<?= htmlspecialchars($order['city']) ?>">
+              <input type="hidden" name="country" value="Sri Lanka">
+              <input type="hidden" name="hash" value="<?= htmlspecialchars($hash) ?>">
+            </form>
+
+            <div style="text-align: center; margin-top: 14px;">
+              <button type="button" onclick="document.getElementById('securePayFallbackForm').submit()" style="background: none; border: none; color: #64748b; font-size: 11.5px; cursor: pointer; text-decoration: underline;">
+                Having trouble with the popup? Use standard hosted checkout &rarr;
+              </button>
             </div>
 
             <div style="margin-top: 18px; text-align: center;">

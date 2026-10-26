@@ -6,6 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/mailer.php';
 
 /**
  * Format currency in Sri Lankan Rupees
@@ -49,12 +50,74 @@ function isLoggedIn() {
 
 function currentUser() {
     if (!isLoggedIn()) return null;
+
+    if (!isset($_SESSION['user_avatar'])) {
+        $pdo = getDbConnection();
+        if ($pdo) {
+            try {
+                $stmt = $pdo->prepare("SELECT name, email, role, avatar_url FROM users WHERE id = ?");
+                $stmt->execute([$_SESSION['user_id']]);
+                $dbU = $stmt->fetch();
+                if ($dbU) {
+                    $_SESSION['user_name'] = $dbU['name'];
+                    $_SESSION['user_email'] = $dbU['email'];
+                    $_SESSION['user_role'] = $dbU['role'];
+                    $_SESSION['user_avatar'] = $dbU['avatar_url'] ?? '';
+                }
+            } catch (Exception $e) {}
+        }
+    }
+
     return [
         'id' => $_SESSION['user_id'],
         'name' => $_SESSION['user_name'] ?? 'User',
         'email' => $_SESSION['user_email'] ?? '',
-        'role' => $_SESSION['user_role'] ?? 'customer'
+        'role' => $_SESSION['user_role'] ?? 'customer',
+        'avatar_url' => $_SESSION['user_avatar'] ?? ''
     ];
+}
+
+/**
+ * Resolve User Avatar URL (Uploaded Photo, Google Photo, or Dynamic Initials SVG)
+ */
+function getUserAvatarUrl($user = null) {
+    if ($user === null) {
+        $user = currentUser();
+    }
+    $name = trim($user['name'] ?? 'User');
+    $avatar = trim($user['avatar_url'] ?? '');
+
+    if (!empty($avatar)) {
+        if (preg_match('/^(https?:\/\/|data:image\/)/i', $avatar)) {
+            return $avatar;
+        }
+        $cleanFile = basename($avatar);
+        $diskPath = __DIR__ . '/../assets/uploads/avatars/' . $cleanFile;
+        if (file_exists($diskPath) && is_file($diskPath)) {
+            $isSubdir = strpos($_SERVER['SCRIPT_NAME'] ?? '', '/admin/') !== false;
+            return ($isSubdir ? '../' : '') . 'assets/uploads/avatars/' . $cleanFile;
+        }
+    }
+
+    // Generate sleek SVG Avatar with User's Initials
+    $parts = preg_split('/\s+/', $name);
+    $initials = strtoupper(substr($parts[0] ?? 'U', 0, 1));
+    if (count($parts) > 1) {
+        $initials .= strtoupper(substr(end($parts), 0, 1));
+    }
+
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">'
+         . '<defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">'
+         . '<stop offset="0%" stop-color="#00e5ff"/>'
+         . '<stop offset="100%" stop-color="#ff4d2d"/>'
+         . '</linearGradient></defs>'
+         . '<rect width="96" height="96" rx="48" fill="#0f172a"/>'
+         . '<circle cx="48" cy="48" r="45" fill="none" stroke="url(#g)" stroke-width="4"/>'
+         . '<text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Outfit,Segoe UI,sans-serif" font-size="36" font-weight="800">'
+         . htmlspecialchars($initials, ENT_QUOTES, 'UTF-8')
+         . '</text></svg>';
+
+    return 'data:image/svg+xml;utf8,' . rawurlencode($svg);
 }
 
 function isAdmin() {
@@ -809,22 +872,50 @@ function findOrCreateMobileUser($mobileNumber) {
 /**
  * Find or create user via Social Provider (Google / Facebook)
  */
-function findOrCreateSocialUser($provider, $email, $name) {
+function findOrCreateSocialUser($provider, $email, $name = '', $avatarUrl = '') {
     $pdo = getDbConnection();
-    if (!$pdo) return null;
+    $email = strtolower(trim($email));
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return null;
+    }
+
+    $name = trim($name);
+    if (empty($name)) {
+        $localPart = explode('@', $email)[0];
+        $localPart = preg_replace('/[0-9_.-]+/', ' ', $localPart);
+        $name = ucwords(trim($localPart));
+        if (empty($name)) {
+            $name = 'Google User';
+        }
+    }
+
+    if (!$pdo) {
+        return [
+            'id' => 99,
+            'name' => $name,
+            'email' => $email,
+            'role' => 'customer',
+            'avatar_url' => $avatarUrl
+        ];
+    }
 
     try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE LOWER(email) = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
         if ($user) {
+            if (!empty($avatarUrl) && empty($user['avatar_url'])) {
+                $up = $pdo->prepare("UPDATE users SET avatar_url = ? WHERE id = ?");
+                $up->execute([$avatarUrl, $user['id']]);
+                $user['avatar_url'] = $avatarUrl;
+            }
             return $user;
         }
 
-        $autoPass = password_hash(uniqid($provider . '_'), PASSWORD_DEFAULT);
-        $ins = $pdo->prepare("INSERT INTO users (name, email, password, phone, address, city, role) VALUES (?, ?, ?, '', 'Signed in with " . ucfirst($provider) . "', 'Colombo', 'customer')");
-        $ins->execute([$name, $email, $autoPass]);
+        $autoPass = password_hash(uniqid($provider . '_', true), PASSWORD_DEFAULT);
+        $ins = $pdo->prepare("INSERT INTO users (name, email, password, phone, address, city, avatar_url, role) VALUES (?, ?, ?, '', ?, 'Colombo', ?, 'customer')");
+        $ins->execute([$name, $email, $autoPass, 'Signed in with ' . ucfirst($provider), $avatarUrl ?: null]);
         $newId = (int)$pdo->lastInsertId();
 
         $fetch = $pdo->prepare("SELECT * FROM users WHERE id = ?");

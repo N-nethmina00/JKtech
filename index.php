@@ -17,8 +17,8 @@ if (empty($featuredProducts)) $featuredProducts = array_slice($allProducts, 0, 6
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JKtech.LK | Genuine Japanese Reconditioned Auto Parts Sri Lanka</title>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/home.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=2.2">
+  <link rel="stylesheet" href="assets/css/home.css?v=2.2">
 </head>
 <body>
 
