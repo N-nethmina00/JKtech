@@ -458,11 +458,7 @@ $hash = generatePayHereHash($merchantId, $orderId, $amount, $currency, $merchant
 
         <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
           <div class="terminal-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <span>256-Bit SSL Encrypted</span>
+
           </div>
           <div style="font-size: 12.5px; color: #94a3b8; font-family: var(--font-mono);">
             Ref: <strong style="color: #fff;">#<?= sprintf('%05d', $orderId) ?></strong>
