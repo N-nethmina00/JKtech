@@ -2,6 +2,13 @@
 // checkout.php - Secure Checkout & Order Processing
 require_once __DIR__ . '/includes/functions.php';
 
+// Strict requirement: User must be signed in to proceed to checkout and payment
+if (!isLoggedIn()) {
+    setFlash('warning', 'Please sign in or create an account to proceed to checkout and payment.');
+    header('Location: login.php?redirect=checkout.php');
+    exit;
+}
+
 $cart = getCart();
 if (empty($cart)) {
     setFlash('warning', 'Your cart is empty. Add parts before checkout.');

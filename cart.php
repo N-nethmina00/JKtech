@@ -351,14 +351,28 @@ $flash = getFlash();
               <span style="color: #fff;"><?= formatCurrency($total) ?></span>
             </div>
 
-            <a href="checkout.php" class="btn btn-primary btn-lg btn-block" style="margin-top: 26px;">
-              <span>Proceed to Checkout</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
-              </svg>
-            </a>
+            <?php if (isLoggedIn()): ?>
+              <a href="checkout.php" class="btn btn-primary btn-lg btn-block" style="margin-top: 26px;">
+                <span>Proceed to Checkout</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                </svg>
+              </a>
+            <?php else: ?>
+              <a href="login.php?redirect=checkout.php" class="btn btn-primary btn-lg btn-block" style="margin-top: 26px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                  <polyline points="10 17 15 12 10 7"></polyline>
+                  <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                <span>Sign In to Checkout &amp; Pay</span>
+              </a>
+              <div style="background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.22); border-radius: 8px; padding: 10px 12px; margin-top: 14px; font-size: 12px; color: #94a3b8; text-align: center; line-height: 1.5;">
+                🔒 <strong style="color: #00e5ff;">Authentication Required:</strong> Please sign in or register to complete your order payment.
+              </div>
+            <?php endif; ?>
 
-            <div style="margin-top: 20px; font-size: 12px; color: var(--text-dim); text-align: center; line-height: 1.5;">
+            <div style="margin-top: 18px; font-size: 12px; color: var(--text-dim); text-align: center; line-height: 1.5;">
               🔒 256-bit Encrypted Checkout • 90-Day Replacement Warranty
             </div>
           </div>
